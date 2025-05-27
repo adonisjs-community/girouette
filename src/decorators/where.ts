@@ -1,5 +1,5 @@
 import { RouteMatcher } from '@adonisjs/core/types/http'
-import { REFLECT_ROUTES_KEY } from '../constants.js'
+import { getControllerMeta, setControllerMeta } from '../metadata_store.js'
 
 /**
  * Decorator for defining route constraints in AdonisJS v6
@@ -36,7 +36,7 @@ import { REFLECT_ROUTES_KEY } from '../constants.js'
  */
 export const Where = (key: string, matcher: RouteMatcher | string | RegExp) => {
   return (target: any, propertyKey: string) => {
-    const routes = Reflect.getMetadata(REFLECT_ROUTES_KEY, target.constructor) || {}
+    const routes = getControllerMeta(target.constructor, 'routes') || {}
     if (!routes[propertyKey]) {
       routes[propertyKey] = {}
     }
@@ -44,6 +44,6 @@ export const Where = (key: string, matcher: RouteMatcher | string | RegExp) => {
       routes[propertyKey].where = []
     }
     routes[propertyKey].where.push({ key, matcher })
-    Reflect.defineMetadata(REFLECT_ROUTES_KEY, routes, target.constructor)
+    setControllerMeta(target.constructor, 'routes', routes)
   }
 }

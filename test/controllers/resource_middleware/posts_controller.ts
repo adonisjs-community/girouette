@@ -1,6 +1,6 @@
 import { Resource, ResourceMiddleware } from '../../../index.js'
 import { HttpContext } from '@adonisjs/core/http'
-import { fakeMiddleware } from '../../utils.js'
+import { fakeMiddleware } from '../../../src/utils.js'
 
 @Resource('/posts')
 @ResourceMiddleware('*', [fakeMiddleware])

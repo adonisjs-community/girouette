@@ -1,10 +1,10 @@
 import { HttpContext } from '@adonisjs/core/http'
 import { Get, Post, Put, Patch, Delete, Any, GroupMiddleware } from '../../../index.js'
-import { fakeMiddleware } from '../../utils.js'
+import { fakeMiddleware } from '../../../src/utils.js'
 
 @GroupMiddleware(fakeMiddleware)
 export default class PostsController {
-  @Get('/posts', 'posts')
+  @Get('/posts', 'posts.index')
   async index({}: HttpContext) {}
 
   @Get('/posts/:id', 'posts.show')

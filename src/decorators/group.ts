@@ -1,5 +1,4 @@
-import { REFLECT_GROUP_KEY } from '../constants.js'
-import { REFLECT_GROUP_DOMAIN_KEY } from '../constants.js'
+import { setControllerMeta } from '../metadata_store.js'
 
 /**
  * The Group decorator allows you to configure route groups with names and prefixes.
@@ -23,7 +22,7 @@ import { REFLECT_GROUP_DOMAIN_KEY } from '../constants.js'
  */
 export const Group = (options: { name?: string; prefix?: string }) => {
   return (target: any) => {
-    Reflect.defineMetadata(REFLECT_GROUP_KEY, options, target)
+    setControllerMeta(target, 'group', options)
   }
 }
 
@@ -46,6 +45,6 @@ export const Group = (options: { name?: string; prefix?: string }) => {
  */
 export const GroupDomain = (domain: string) => {
   return (target: any) => {
-    Reflect.defineMetadata(REFLECT_GROUP_DOMAIN_KEY, domain, target)
+    setControllerMeta(target, 'groupDomain', domain)
   }
 }

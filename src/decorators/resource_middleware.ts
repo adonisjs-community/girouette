@@ -4,7 +4,7 @@ import {
   ParsedNamedMiddleware,
   ResourceActionNames,
 } from '@adonisjs/core/types/http'
-import { REFLECT_RESOURCE_MIDDLEWARE_KEY } from '../constants.js'
+import { getControllerMeta, setControllerMeta } from '../metadata_store.js'
 
 /**
  * The ResourceMiddleware decorator applies middleware to specific resource actions.
@@ -34,8 +34,8 @@ export const ResourceMiddleware = (
   middleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>
 ) => {
   return (target: any) => {
-    const resourceMiddleware = Reflect.getMetadata(REFLECT_RESOURCE_MIDDLEWARE_KEY, target) || []
+    const resourceMiddleware = getControllerMeta(target, 'resourceMiddleware') || []
     resourceMiddleware.push({ actions, middleware })
-    Reflect.defineMetadata(REFLECT_RESOURCE_MIDDLEWARE_KEY, resourceMiddleware, target)
+    setControllerMeta(target, 'resourceMiddleware', resourceMiddleware)
   }
 }

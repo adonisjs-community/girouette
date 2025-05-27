@@ -1,24 +1,36 @@
-import { REFLECT_ROUTES_KEY } from '../constants.js'
+import { getControllerMeta, setControllerMeta } from '../metadata_store.js'
+
+type MethodDecoratorFn = (value: Function, context: ClassMethodDecoratorContext) => Function | void;
 
 /**
  * Creates a method decorator for HTTP routes in AdonisJS v6
  * @param method The HTTP method (e.g., 'GET', 'POST')
  * @returns A decorator function
  */
-const MethodDecorator = (method: string) => (pattern: string, name?: string) => {
-  return (target: any, key: string, descriptor: PropertyDescriptor) => {
-    const routes = Reflect.getMetadata(REFLECT_ROUTES_KEY, target.constructor) || {}
-    const newRoute = { method, pattern, name }
-
-    if (routes[key]) {
-      routes[key] = { ...newRoute, ...routes[key] }
-    } else {
-      routes[key] = { method, pattern, name }
+export const MethodDecorator = (method: string) => (pattern: string, name?: string): MethodDecoratorFn => {
+  return (_: Function, context: ClassMethodDecoratorContext) => {
+    if (context.kind !== 'method') {
+      throw new Error('MethodDecorator can only be applied to methods')
     }
 
-    Reflect.defineMetadata(REFLECT_ROUTES_KEY, routes, target.constructor)
+    // Stocker la méta dans l'initializer, on récupère l'instance de la classe
+    context.addInitializer(function (this: any) {
+      // `this` est l'instance de la classe
+      const ctor = this.constructor
 
-    return descriptor
+      const routes = getControllerMeta(ctor, 'routes') || {}
+
+      const newRoute = { method, pattern, name }
+
+      routes[context.name] = {
+        ...newRoute,
+        ...routes[context.name],
+      }
+
+      setControllerMeta(ctor, 'routes', routes)
+    })
+
+    return
   }
 }
 

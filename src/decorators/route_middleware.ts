@@ -1,5 +1,5 @@
 import { MiddlewareFn, OneOrMore, ParsedNamedMiddleware } from '@adonisjs/core/types/http'
-import { REFLECT_ROUTES_KEY } from '../constants.js'
+import { getControllerMeta, setControllerMeta } from '../metadata_store.js'
 
 /**
  * The RouteMiddleware decorator applies middleware to a specific route.
@@ -17,7 +17,8 @@ import { REFLECT_ROUTES_KEY } from '../constants.js'
  */
 export const RouteMiddleware = (middleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>) => {
   return (target: any, key: string) => {
-    const routes = Reflect.getMetadata(REFLECT_ROUTES_KEY, target.constructor) || {}
+    const routes = getControllerMeta(target.constructor, 'routes') || {}
+
     if (!routes[key]) {
       routes[key] = {}
     }
@@ -25,6 +26,6 @@ export const RouteMiddleware = (middleware: OneOrMore<MiddlewareFn | ParsedNamed
       routes[key].middleware = []
     }
     routes[key].middleware.push(middleware)
-    Reflect.defineMetadata(REFLECT_ROUTES_KEY, routes, target.constructor)
+    setControllerMeta(target.constructor, 'routes', routes)
   }
 }

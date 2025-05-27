@@ -1,4 +1,4 @@
-import { REFLECT_RESOURCE_KEY, REFLECT_RESOURCE_NAME_KEY } from '../constants.js'
+import { setControllerMeta } from '../metadata_store.js'
 
 /**
  * The Resource decorator automatically defines RESTful routes for a controller.
@@ -22,10 +22,14 @@ import { REFLECT_RESOURCE_KEY, REFLECT_RESOURCE_NAME_KEY } from '../constants.js
  * ```
  */
 export const Resource = (pattern: string, name?: string) => {
-  return (target: any) => {
-    Reflect.defineMetadata(REFLECT_RESOURCE_KEY, pattern, target)
+  return (target: any, context: ClassDecoratorContext) => {
+    if (context.kind !== 'class') {
+      throw new Error('@Resource can only be used on classes')
+    }
+
+    setControllerMeta(target, 'resource', pattern)
     if (name) {
-      Reflect.defineMetadata(REFLECT_RESOURCE_NAME_KEY, name, target)
+      setControllerMeta(target, 'resourceName', name)
     }
   }
 }

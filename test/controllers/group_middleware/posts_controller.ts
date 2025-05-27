@@ -1,6 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import { Get, Group, GroupMiddleware } from '../../../index.js'
-import { fakeMiddleware } from '../../utils.js'
+import { fakeMiddleware } from '../../../src/utils.js'
 
 @Group({ name: 'posts', prefix: 'posts' })
 @GroupMiddleware([fakeMiddleware])

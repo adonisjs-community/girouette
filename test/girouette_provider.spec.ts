@@ -1,11 +1,10 @@
-import 'reflect-metadata'
 import { test } from '@japa/runner'
 import GirouetteProvider from '../providers/girouette_provider.js'
 import app from '@adonisjs/core/services/app'
 import { join } from 'node:path'
 import { cwd } from 'node:process'
 import { HttpRouterService } from '@adonisjs/core/types'
-import { HTTP_METHODS, RESOURCE_METHODS, ResourceRoute, Route } from './utils.js'
+import { HTTP_METHODS, RESOURCE_METHODS, ResourceRoute, Route } from '../src/utils.js'
 import { RouteResource } from '@adonisjs/core/http'
 
 test.group('GirouetteProvider', async (group) => {
