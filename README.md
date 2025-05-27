@@ -267,3 +267,6 @@ We're well aware about the uncertain future of **TC39 decorators**, which are st
 ## License
 
 Girouette is open-sourced software licensed under the [MIT license](./LICENSE.md).
+
+## Credits
+All credit goes to [Alexis Bouchez](https://github.com/alexisbcz), who initiated this package. Thanks to him! It is now maintained by the AdonisJS community.
