@@ -8,6 +8,7 @@
 */
 
 export { configure } from './configure.js'
+export { defineConfig } from './src/define_config.js'
 
 export * from './src/decorators/methods.js'
 export { RouteMiddleware as Middleware } from './src/decorators/route_middleware.js'

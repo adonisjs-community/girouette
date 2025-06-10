@@ -24,6 +24,7 @@ import {
   REFLECT_RESOURCE_PARAMS_KEY,
 } from '../src/constants.js'
 import { RouteResource } from '@adonisjs/core/http'
+import { GirouetteConfig } from '../src/types.js'
 
 /**
  * Represents a route configuration within the Girouette system
@@ -70,6 +71,7 @@ export default class GirouetteProvider {
   #router: HttpRouterService | null = null
   #logger: LoggerService | null = null
   #controllersPath: string = join(cwd(), 'app')
+  #config: GirouetteConfig | null = null
 
   constructor(protected app: ApplicationService) {}
 
@@ -94,6 +96,7 @@ export default class GirouetteProvider {
   async start() {
     this.#router = await this.app.container.make('router')
     this.#logger = await this.app.container.make('logger')
+    this.#config = this.app.config.get('girouette')
     await this.#scanControllersDirectory(this.#controllersPath)
   }
 
@@ -121,7 +124,10 @@ export default class GirouetteProvider {
    * Checks if a file is a controller file based on its name
    */
   #isControllerFile(fileName: string): boolean {
-    return fileName.endsWith('_controller.ts') || fileName.endsWith('_controller.js')
+    if (!this.#config?.controllersGlob) {
+      return fileName.endsWith('_controller.ts') || fileName.endsWith('_controller.js')
+    }
+    return !!this.#config?.controllersGlob.test(fileName)
   }
 
   /**

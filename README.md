@@ -1,7 +1,7 @@
-![Statements](https://img.shields.io/badge/statements-98.17%25-brightgreen.svg?style=flat)
-![Branches](https://img.shields.io/badge/branches-91.3%25-brightgreen.svg?style=flat)
-![Functions](https://img.shields.io/badge/functions-96.96%25-brightgreen.svg?style=flat)
-![Lines](https://img.shields.io/badge/lines-98.17%25-brightgreen.svg?style=flat)
+![Statements](https://img.shields.io/badge/statements-97.97%25-brightgreen.svg?style=flat)
+![Branches](https://img.shields.io/badge/branches-91.48%25-brightgreen.svg?style=flat)
+![Functions](https://img.shields.io/badge/functions-93.93%25-brightgreen.svg?style=flat)
+![Lines](https://img.shields.io/badge/lines-97.97%25-brightgreen.svg?style=flat)
 
 # Girouette
 
@@ -19,11 +19,18 @@ You can install Girouette via the AdonisJS CLI:
 node ace add @adonisjs-community/girouette
 ```
 
+## Configuration
+
+To manually generate the configuration file, you can run:
+
+```bash
+node ace configure @adonisjs-community/girouette
+```
+By convention, Girouette will recursively scan all files in the `./app` folder that end with `_controller.ts`. You can change this behavior by modifying the `controllersGlob` regex in the configuration file.
+
 ## Basic Routing
 
 After installation, you can start using decorators to define your routes.
-
-By convention, Girouette will scan all files in the `./app` folder that end with `_controller.ts`.
 
 Import the decorators you need in your controller:
 

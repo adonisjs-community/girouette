@@ -180,4 +180,17 @@ test.group('GirouetteProvider', async (group) => {
 
     assert.isTrue(new RegExp(slugMatcher).test('333'))
   })
+
+  test('should scan controllers with custom regex config', async ({ assert }) => {
+    provider.controllersPath = `${BASE_PATH}/custom_regex`
+    app.config.set('girouette', {
+      controllersGlob: /_controller_domain\.(ts|js)$/,
+    })
+
+    await provider.start()
+
+    const routes: Route[] = router.routes.map((r: any) => r.toJSON())
+
+    assert.isTrue(routes.some((r) => r.name === 'posts.custom_regex.index'))
+  })
 })

@@ -1,0 +1,14 @@
+{{{
+  exports({ to: app.configPath('girouette.ts') })
+}}}
+import { defineConfig } from '@adonisjs-community/girouette'
+
+const girouetteConfig = defineConfig({
+  /**
+   * This regex is used to find matching controller files. You can customize it to suit your needs.
+   */
+  controllersGlob: /{{'_'}}controller\\.(ts|js)$/,
+})
+
+export default girouetteConfig
+
