@@ -21,6 +21,5 @@ export async function configure(command: ConfigureCommand) {
     rcFile.addProvider('@adonisjs-community/girouette/girouette_provider')
   })
 
-  console.log('Adding Girouette', stubsRoot)
   await codemods.makeUsingStub(stubsRoot, 'config/girouette.stub', {})
 }
