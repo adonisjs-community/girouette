@@ -11,7 +11,6 @@ import {
   RouteMatcher,
 } from '@adonisjs/core/types/http'
 import {
-  REFLECT_RESOURCE_KEY,
   REFLECT_RESOURCE_MIDDLEWARE_KEY,
   REFLECT_RESOURCE_NAME_KEY,
   REFLECT_ROUTES_KEY,
@@ -297,16 +296,16 @@ export default class GirouetteProvider {
    */
   #registerResourceRoutes(controller: ControllerToProcess) {
     try {
-      const resourcePattern = Reflect.getMetadata(
-        REFLECT_RESOURCE_KEY,
+      const resourceName = Reflect.getMetadata(
+        REFLECT_RESOURCE_NAME_KEY,
         controller.controller.default
       )
-      if (!resourcePattern) return
+      if (!resourceName) return
 
       const relativePath = relative(this.app.appRoot.pathname, controller.importUrl.pathname)
         .replaceAll('\\', '/')
         .replace(/\.ts$/, '.js')
-      const resource = this.#router!.resource(resourcePattern, `./${relativePath}`)
+      const resource = this.#router!.resource(resourceName, `./${relativePath}`)
       this.#configureResource(resource, controller)
     } catch (error) {
       this.#logger?.debug({ error }, '[Girouette] Error registering resource routes')
@@ -318,14 +317,6 @@ export default class GirouetteProvider {
    */
   #configureResource(resource: RouteResource, controller: ControllerToProcess) {
     try {
-      const resourceName = Reflect.getMetadata(
-        REFLECT_RESOURCE_NAME_KEY,
-        controller.controller.default
-      )
-      if (resourceName) {
-        resource.as(resourceName)
-      }
-
       const resourceParams = Reflect.getMetadata(
         REFLECT_RESOURCE_PARAMS_KEY,
         controller.controller.default

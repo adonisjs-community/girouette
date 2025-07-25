@@ -90,6 +90,10 @@ test.group('GirouetteProvider', async (group) => {
 
     assert.isTrue(routesWithParams.every((r) => r.pattern.startsWith('/posts')))
     assert.isTrue(routesWithParams.every((r) => r.pattern.includes(':post')))
+
+    // Test that the comments resource ID parameter is renamed from :id to :comment
+    const routesWithCommentId = routes.filter((r) => r.pattern.includes('comments/:'))
+    assert.isTrue(routesWithCommentId.every((r) => r.pattern.includes(':comment')))
   })
 
   test('should register "resource_middleware" routes', async ({ assert }) => {

@@ -1,7 +1,7 @@
 import { Resource } from '../../../index.js'
 import { HttpContext } from '@adonisjs/core/http'
 
-@Resource({ pattern: 'posts', name: 'posts', params: { posts: 'post' } })
+@Resource({ name: 'posts', params: { posts: 'post' } })
 export default class PostsController {
   async index({}: HttpContext) {}
 

@@ -2,7 +2,7 @@ import { Resource, ResourceMiddleware } from '../../../index.js'
 import { HttpContext } from '@adonisjs/core/http'
 import { fakeMiddleware } from '../../utils.js'
 
-@Resource('/posts')
+@Resource({ name: 'posts' })
 @ResourceMiddleware('*', [fakeMiddleware])
 export default class PostsController {
   async index({}: HttpContext) {}
