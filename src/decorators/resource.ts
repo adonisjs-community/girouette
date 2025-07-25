@@ -16,17 +16,17 @@ type ResourceOptions =
  *
  * @example
  * ```ts
- * // Simple resource with custom pattern
- * @Resource({ name: 'posts', params: { posts: 'post_id' } })
+ * // Simple resource with custom params
+ * @Resource({ name: 'posts', params: { posts: 'post' } })
  * export default class PostsController {
  *   // Generates routes:
  *   // GET    /posts               (posts.index)
  *   // GET    /posts/create        (posts.create)
  *   // POST   /posts               (posts.store)
- *   // GET    /posts/:post_id       (posts.show)
- *   // GET    /posts/:post_id/edit  (posts.edit)
- *   // PUT    /posts/:post_id       (posts.update)
- *   // DELETE /posts/:post_id       (posts.destroy)
+ *   // GET    /posts/:post       (posts.show)
+ *   // GET    /posts/:post/edit  (posts.edit)
+ *   // PUT    /posts/:post       (posts.update)
+ *   // DELETE /posts/:post       (posts.destroy)
  * }
  * ```
  * @example

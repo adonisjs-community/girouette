@@ -126,7 +126,7 @@ For RESTful resources, Girouette provides a `Resource` decorator that automatica
 ```typescript
 import { Resource } from '@adonisjs-community/girouette'
 
-@Resource({pattern: '/posts', name: 'blog.posts'})
+@Resource('posts')
 export default class PostsController {
   async index() {} // GET /posts
   async create() {} // GET /posts/create
@@ -145,7 +145,7 @@ You can also rename the resource parameters:
 ```typescript
 import { Resource } from '@adonisjs-community/girouette'
 
-@Resource({ pattern: '/articles', params: { article: 'slug' } })
+@Resource({ name: 'articles', params: { articles: 'slug' } })
 export default class ArticlesController {
   async index() {} // GET /articles
   async create() {} // GET /articles/create
@@ -154,6 +154,24 @@ export default class ArticlesController {
   async edit({ params }: HttpContext) {} // GET /articles/:slug/edit
   async update({ params }: HttpContext) {} // PUT/PATCH /articles/:slug
   async destroy({ params }: HttpContext) {} // DELETE /articles/:slug
+}
+```
+<br>
+
+
+Or create a nested resource:
+```typescript
+import { Resource } from '@adonisjs-community/girouette'
+
+@Resource({ name: 'user.posts', params: { users: 'userId', posts: 'postId' } })
+export default class UserPostsController {
+  async index({ params }: HttpContext) {} // GET /users/:userId/posts
+  async create({ params }: HttpContext) {} // GET /users/:userId/posts/create
+  async store({ params }: HttpContext) {} // POST /users/:userId/posts
+  async show({ params }: HttpContext) {} // GET /users/:userId/posts/:postId
+  async edit({ params }: HttpContext) {} // GET /users/:userId/posts/:postId/edit
+  async update({ params }: HttpContext) {} // PUT/PATCH /users/:userId/posts/:postId
+  async destroy({ params }: HttpContext) {} // DELETE /users/:userId/posts/:postId
 }
 ```
 
@@ -190,7 +208,7 @@ export default class PostsController {
 - `@GroupDomain(domain: string)` - Restrict routes to a specific domain
 - `@GroupMiddleware(middleware: Middleware[])` - Apply middleware to all routes
 - `@Middleware(middleware: Middleware[])` - Apply middleware to a single route
-- `@Resource({pattern: string, name?: string, params?: { [resource: string]: string } })` - Create RESTful resource routes
+- `@Resource({name: string, params?: { [resource: string]: string } })` - Create RESTful resource routes
 - `@ResourceMiddleware(actions: string | string[], middleware: Middleware[])` - Apply middleware to resource actions
 - `@Where(param: string, matcher: string | RegExp | Function)` - Add route parameter constraints
 
@@ -229,7 +247,7 @@ Apply middleware to specific resource actions:
 import { Resource, ResourceMiddleware } from '@adonisjs-community/girouette'
 import { middleware } from '#start/kernel'
 
-@Resource({ pattern: '/admin/posts', name: 'admin.posts' })
+@Resource('admin.posts')
 @ResourceMiddleware(['store', 'update', 'destroy'], [middleware.auth()])
 export default class AdminPostsController {
   // Only store, update, and destroy methods are protected
@@ -243,7 +261,7 @@ You can pick specific actions to include or exclude using `@Pick`, `@Except`or `
 ```typescript
 import { Resource, Except } from '@adonisjs-community/girouette'
 
-@Resource({ pattern: '/products', name: 'shop.products' })
+@Resource('shop.products')
 @Except(['create', 'store', 'edit', 'update', 'destroy'])
 export default class ProductsController {
   async index() {} // GET /products
@@ -255,7 +273,7 @@ export default class ProductsController {
 ```typescript
 import { Resource, Except } from '@adonisjs-community/girouette'
 
-@Resource({ pattern: '/products', name: 'shop.products' })
+@Resource('shop.products')
 @ApiOnly()
 export default class ProductsController {
   async index() {}
