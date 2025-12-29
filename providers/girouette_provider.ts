@@ -1,15 +1,9 @@
 import 'reflect-metadata'
 import type { ApplicationService, HttpRouterService, LoggerService } from '@adonisjs/core/types'
-import { cwd } from 'node:process'
 import { join, relative } from 'node:path'
 import { readdir } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
-import {
-  MiddlewareFn,
-  OneOrMore,
-  ParsedNamedMiddleware,
-  RouteMatcher,
-} from '@adonisjs/core/types/http'
+import { MiddlewareFn, ParsedNamedMiddleware, RouteMatcher } from '@adonisjs/core/types/http'
 import {
   REFLECT_RESOURCE_MIDDLEWARE_KEY,
   REFLECT_RESOURCE_NAME_KEY,
@@ -25,6 +19,7 @@ import {
 import { RouteResource } from '@adonisjs/core/http'
 import { GirouetteConfig } from '../src/types.js'
 import { Girouette } from '../src/girouette.js'
+import { OneOrMore } from '@adonisjs/http-server/types'
 
 /**
  * Represents a route configuration within the Girouette system
@@ -70,18 +65,9 @@ type GroupMetadata = {
 export default class GirouetteProvider {
   #router: HttpRouterService | null = null
   #logger: LoggerService | null = null
-  #controllersPath: string = join(cwd(), 'app')
   #config: GirouetteConfig | null = null
 
   constructor(protected app: ApplicationService) {}
-
-  /**
-   * Sets the path to the controllers
-   */
-
-  set controllersPath(path: string) {
-    this.#controllersPath = path
-  }
 
   async register() {
     this.app.container.singleton(Girouette, async (resolver) => {

@@ -39,15 +39,13 @@ export class Autoloader extends Emittery<AutoloaderEvents> {
    * List matching files for autoloading.
    */
   async discover() {
-    const matches = await globby(this.options.path, {
+    return await globby(this.options.path, {
       absolute: true,
       expandDirectories: {
         files: this.options.suffixes.map((suffix) => `*_${suffix}`),
         extensions: ['ts', 'tsx', 'js', 'jsx'],
       },
     })
-
-    return matches
   }
 
   /**
