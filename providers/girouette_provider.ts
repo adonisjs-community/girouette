@@ -3,7 +3,11 @@ import type { ApplicationService, HttpRouterService, LoggerService } from '@adon
 import { join, relative } from 'node:path'
 import { readdir } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
-import { MiddlewareFn, ParsedNamedMiddleware, RouteMatcher } from '@adonisjs/core/types/http'
+import {
+  type MiddlewareFn,
+  type ParsedNamedMiddleware,
+  type RouteMatcher,
+} from '@adonisjs/core/types/http'
 import {
   REFLECT_RESOURCE_MIDDLEWARE_KEY,
   REFLECT_RESOURCE_NAME_KEY,
@@ -16,21 +20,10 @@ import {
   REFLECT_RESOURCE_API_ONLY_KEY,
   REFLECT_RESOURCE_PARAMS_KEY,
 } from '../src/constants.js'
-import { RouteResource } from '@adonisjs/core/http'
-import { GirouetteConfig } from '../src/types.js'
+import { type RouteResource } from '@adonisjs/core/http'
+import { type GirouetteRoute, type GirouetteConfig } from '../src/types.js'
 import { Girouette } from '../src/girouette.js'
-import { OneOrMore } from '@adonisjs/http-server/types'
-
-/**
- * Represents a route configuration within the Girouette system
- */
-type GirouetteRoute = {
-  method: string
-  pattern: string
-  name: string
-  where: { key: string; matcher: RouteMatcher | string | RegExp }[]
-  middleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>[]
-}
+import { type OneOrMore } from '@adonisjs/core/types/common'
 
 /**
  * Represent a route that should be processed
@@ -193,7 +186,7 @@ export default class GirouetteProvider {
     route: GirouetteRoute,
     group?: GroupMetadata,
     groupMiddleware?: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>
-  ) {
+  ): GirouetteRoute {
     if (!group && !groupMiddleware) return route
 
     return {
@@ -228,8 +221,8 @@ export default class GirouetteProvider {
   #mergeMiddleware(
     routeMiddleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>[],
     groupMiddleware?: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>
-  ) {
-    const middleware = [...(routeMiddleware || [])]
+  ): OneOrMore<MiddlewareFn | ParsedNamedMiddleware>[] {
+    const middleware = [routeMiddleware].flat()
     if (groupMiddleware) {
       if (Array.isArray(groupMiddleware)) {
         middleware.unshift(...groupMiddleware)

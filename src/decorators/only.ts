@@ -1,5 +1,5 @@
 import { REFLECT_RESOURCE_ONLY_KEY } from '../constants.js'
-import { ResourceActionNames } from '@adonisjs/core/types/http'
+import { type ResourceActionNames } from '@adonisjs/core/types/http'
 
 /**
  * The `@Only` decorator specifies which CRUD methods should be included in the resource.

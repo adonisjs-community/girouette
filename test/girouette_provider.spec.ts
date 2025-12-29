@@ -4,9 +4,9 @@ import GirouetteProvider from '../providers/girouette_provider.js'
 import app from '@adonisjs/core/services/app'
 import { join } from 'node:path'
 import { cwd } from 'node:process'
-import { HttpRouterService } from '@adonisjs/core/types'
-import { HTTP_METHODS, RESOURCE_METHODS, ResourceRoute, Route } from './utils.js'
-import { RouteResource } from '@adonisjs/core/http'
+import { type HttpRouterService } from '@adonisjs/core/types'
+import { HTTP_METHODS, RESOURCE_METHODS, type ResourceRoute, type Route } from './utils.js'
+import { type RouteResource } from '@adonisjs/core/http'
 
 test.group('GirouetteProvider', async (group) => {
   let BASE_PATH = join(cwd(), 'test/controllers')

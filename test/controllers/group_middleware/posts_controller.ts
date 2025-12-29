@@ -1,4 +1,4 @@
-import { HttpContext } from '@adonisjs/core/http'
+import { type HttpContext } from '@adonisjs/core/http'
 import { Get, Group, GroupMiddleware } from '../../../index.js'
 import { fakeMiddleware } from '../../utils.js'
 

@@ -1,5 +1,5 @@
 import { Resource } from '../../../index.js'
-import { HttpContext } from '@adonisjs/core/http'
+import { type HttpContext } from '@adonisjs/core/http'
 
 @Resource({
   name: 'posts.comments',

@@ -1,4 +1,4 @@
-import { HttpContext } from '@adonisjs/core/http'
+import { type HttpContext } from '@adonisjs/core/http'
 import { Get, Group, GroupDomain } from '../../../index.js'
 
 @Group({ name: '/posts', prefix: '/posts' })

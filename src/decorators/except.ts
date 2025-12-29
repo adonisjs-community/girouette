@@ -1,5 +1,5 @@
 import { REFLECT_RESOURCE_EXCEPT_KEY } from '../constants.js'
-import { ResourceActionNames } from '@adonisjs/core/types/http'
+import { type ResourceActionNames } from '@adonisjs/core/types/http'
 
 /**
  * The `@Except` decorator specifies which CRUD methods should be excluded from the resource.

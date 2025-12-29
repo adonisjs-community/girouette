@@ -1,4 +1,4 @@
-import { RouteMatcher } from '@adonisjs/core/types/http'
+import { type RouteMatcher } from '@adonisjs/core/types/http'
 import { REFLECT_ROUTES_KEY } from '../constants.js'
 
 /**
