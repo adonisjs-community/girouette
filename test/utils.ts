@@ -1,5 +1,5 @@
-import { HttpContext } from '@adonisjs/core/http'
-import { NextFn } from '@adonisjs/core/types/http'
+import { type HttpContext } from '@adonisjs/core/http'
+import { type NextFn } from '@adonisjs/core/types/http'
 
 export const fakeMiddleware = async ({}: HttpContext, next: NextFn) => {
   next()

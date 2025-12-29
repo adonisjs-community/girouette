@@ -1,4 +1,8 @@
-import { MiddlewareFn, OneOrMore, ParsedNamedMiddleware } from '@adonisjs/core/types/http'
+import {
+  type MiddlewareFn,
+  type OneOrMore,
+  type ParsedNamedMiddleware,
+} from '@adonisjs/core/types/http'
 import { REFLECT_GROUP_MIDDLEWARE_KEY } from '../constants.js'
 
 /**

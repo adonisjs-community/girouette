@@ -1,8 +1,9 @@
-import { ApplicationService, HttpRouterService } from '@adonisjs/core/types'
+import { type ApplicationService, type HttpRouterService } from '@adonisjs/core/types'
 import { Autoloader } from './autoloader.js'
-import { Logger } from '@adonisjs/core/logger'
+import { type Logger } from '@adonisjs/core/logger'
 import { REFLECT_ROUTES_KEY } from './constants.js'
 import { Route } from '@adonisjs/http-server'
+import { type GirouetteRoute } from './types.ts'
 
 export type GirouetteOptions = {
   controllersPath: string
@@ -20,6 +21,8 @@ export class Girouette {
   #autoloader: Autoloader
 
   cache = new Map<string, Route[]>()
+
+  #controllers = new Map<string, FunctionConstructor>()
 
   constructor(
     app: ApplicationService,
@@ -51,15 +54,21 @@ export class Girouette {
   }
 
   updateControllerRoutes(Controller: FunctionConstructor, path: string) {
-    const routes = this.#createControllerRoutes(Controller)
-    this.cache.set(path, routes)
+    this.#controllers.set(path, Controller)
     this.reload()
   }
 
   reload() {
-    for (const routes of this.cache.values()) {
-      for (const route of routes) {
-        this.#router.pushToRoutes(route)
+    for (const Controller of this.#controllers.values()) {
+      const routes = Reflect.getMetadata(REFLECT_ROUTES_KEY, Controller) as Record<
+        string,
+        GirouetteRoute
+      >
+
+      if (!routes) continue
+
+      for (const [propertyKey, route] of Object.entries(routes)) {
+        this.#router.route(route.pattern, [route.method], [Controller, propertyKey] as any)
       }
     }
 

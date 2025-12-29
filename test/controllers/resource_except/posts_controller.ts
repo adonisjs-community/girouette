@@ -1,5 +1,5 @@
 import { Except, Resource } from '../../../index.js'
-import { HttpContext } from '@adonisjs/core/http'
+import { type HttpContext } from '@adonisjs/core/http'
 
 @Resource('posts')
 @Except(['create', 'show'])
