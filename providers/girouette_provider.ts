@@ -24,6 +24,7 @@ import {
 } from '../src/constants.js'
 import { RouteResource } from '@adonisjs/core/http'
 import { GirouetteConfig } from '../src/types.js'
+import { Girouette } from '../src/girouette.js'
 
 /**
  * Represents a route configuration within the Girouette system
@@ -82,11 +83,22 @@ export default class GirouetteProvider {
     this.#controllersPath = path
   }
 
+  async register() {
+    this.app.container.singleton(Girouette, async (resolver) => {
+      const [router, logger] = await Promise.all([resolver.make('router'), resolver.make('logger')])
+
+      return new Girouette(this.app, router, logger, {
+        controllersPath: this.app.httpControllersPath(),
+      })
+    })
+  }
+
   /**
    * Boot the provider when the application is ready
    */
   async boot() {
-    // Provider is booted
+    const girouette = await this.app.container.make(Girouette)
+    girouette.load()
   }
 
   /**
@@ -96,7 +108,7 @@ export default class GirouetteProvider {
     this.#router = await this.app.container.make('router')
     this.#logger = await this.app.container.make('logger')
     this.#config = this.app.config.get('girouette')
-    await this.#scanControllersDirectory(this.#controllersPath)
+    // await this.#scanControllersDirectory(this.#controllersPath)
   }
 
   /**
