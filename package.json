@@ -30,7 +30,6 @@
     "test": "c8 --include=src --include=providers --reporter=json-summary npm run quick:test && istanbul-badges-readme",
     "prebuild": "npm run lint && npm run clean",
     "build": "pnpm clean && tsc && pnpm copy:templates",
-    "dev": "tsc --watch",
     "release": "release-it",
     "version": "npm run build",
     "prepublishOnly": "npm run build"
@@ -57,10 +56,6 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "emittery": "^1.2.0",
-    "globby": "^14.1.0",
-    "hot-hook": "file:../hot-hook/packages/hot_hook",
-    "@adonisjs/http-server": "file:../http-server",
     "reflect-metadata": "^0.2.2"
   },
   "peerDependencies": {
@@ -73,9 +68,6 @@
     "decorators",
     "routing"
   ],
-  "resolutions": {
-    "@adonisjs/http-server": "file:../http-server"
-  },
   "eslintConfig": {
     "extends": "@adonisjs/eslint-config/package"
   },
