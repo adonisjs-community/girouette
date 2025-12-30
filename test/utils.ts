@@ -1,4 +1,5 @@
 import { HttpContext } from '@adonisjs/core/http'
+import { type HttpRouterService } from '@adonisjs/core/types'
 import { NextFn } from '@adonisjs/core/types/http'
 
 export const fakeMiddleware = async ({}: HttpContext, next: NextFn) => {
@@ -23,6 +24,10 @@ export interface Route {
 
 export interface ResourceRoute {
   routes: Route[]
+}
+
+export function extractRoutesList(routes: ReturnType<HttpRouterService['toJSON']>) {
+  return Object.values(routes).flat() as Route[]
 }
 
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'ANY', 'HEAD']

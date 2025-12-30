@@ -19,6 +19,7 @@ import {
 import { RouteResource } from '@adonisjs/core/http'
 import { GirouetteConfig } from '../src/types.js'
 import { OneOrMore } from '@adonisjs/http-server/types'
+import { cwd } from 'node:process'
 
 /**
  * Represents a route configuration within the Girouette system
@@ -64,6 +65,7 @@ type GroupMetadata = {
 export default class GirouetteProvider {
   #router: HttpRouterService | null = null
   #logger: LoggerService | null = null
+  #controllersPath: string = join(cwd(), 'app')
   #config: GirouetteConfig | null = null
 
   constructor(protected app: ApplicationService) {}
