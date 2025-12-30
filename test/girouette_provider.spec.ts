@@ -5,7 +5,7 @@ import app from '@adonisjs/core/services/app'
 import { join } from 'node:path'
 import { cwd } from 'node:process'
 import { HttpRouterService } from '@adonisjs/core/types'
-import { HTTP_METHODS, RESOURCE_METHODS, ResourceRoute, Route } from './utils.js'
+import { HTTP_METHODS, RESOURCE_METHODS, ResourceRoute, Route, extractRoutesList } from './utils.js'
 import { RouteResource } from '@adonisjs/core/http'
 
 test.group('GirouetteProvider', async (group) => {
@@ -21,16 +21,12 @@ test.group('GirouetteProvider', async (group) => {
     provider = new GirouetteProvider(app)
   })
 
-  group.each.teardown(() => {
-    router.routes = []
-  })
-
   test('should register "group" routes', async ({ assert }) => {
     provider.controllersPath = `${BASE_PATH}/group`
 
     await provider.start()
 
-    const routes: Route[] = router.routes.map((r: any) => r.toJSON())
+    const routes = extractRoutesList(router.toJSON())
 
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
 
@@ -42,7 +38,7 @@ test.group('GirouetteProvider', async (group) => {
 
     await provider.start()
 
-    const routes: Route[] = router.routes.map((r: any) => r.toJSON())
+    const routes = extractRoutesList(router.toJSON())
 
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
   })
@@ -52,7 +48,7 @@ test.group('GirouetteProvider', async (group) => {
 
     await provider.start()
 
-    const routes: Route[] = router.routes.map((r: any) => r.toJSON())
+    const routes: Route[] = extractRoutesList(router.toJSON())
 
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
 
@@ -64,7 +60,7 @@ test.group('GirouetteProvider', async (group) => {
 
     await provider.start()
 
-    const resourceRoute = router.routes[0] as unknown as ResourceRoute
+    const resourceRoute = extractRoutesList(router.toJSON())[0] as unknown as ResourceRoute
 
     const routes: Route[] = resourceRoute.routes.map((r: any) => r.toJSON())
 
@@ -83,7 +79,7 @@ test.group('GirouetteProvider', async (group) => {
 
     await provider.start()
 
-    const resourceRoute = router.routes[0] as unknown as ResourceRoute
+    const resourceRoute = extractRoutesList(router.toJSON())[0] as unknown as ResourceRoute
 
     const routes: Route[] = resourceRoute.routes.map((r: any) => r.toJSON())
     const routesWithParams = routes.filter((r) => r.pattern.includes(':'))
@@ -101,7 +97,7 @@ test.group('GirouetteProvider', async (group) => {
 
     await provider.start()
 
-    const resourceRoute = router.routes[0] as unknown as ResourceRoute
+    const resourceRoute = extractRoutesList(router.toJSON())[0] as unknown as ResourceRoute
 
     const routes: Route[] = resourceRoute.routes.map((r: any) => r.toJSON())
 
@@ -120,7 +116,7 @@ test.group('GirouetteProvider', async (group) => {
 
     await provider.start()
 
-    const resource = router.routes[0] as RouteResource
+    const resource = extractRoutesList(router.toJSON())[0] as unknown as RouteResource
     const routes = resource.routes
 
     assert.isTrue(routes.find((route) => route.getName()?.endsWith('.create'))!.isDeleted())
@@ -132,7 +128,7 @@ test.group('GirouetteProvider', async (group) => {
 
     await provider.start()
 
-    const resource = router.routes[0] as RouteResource
+    const resource = extractRoutesList(router.toJSON())[0] as unknown as RouteResource
     const routes = resource.routes
 
     assert.isFalse(routes.find((route) => route.getName()?.endsWith('.update'))?.isDeleted())
@@ -149,7 +145,7 @@ test.group('GirouetteProvider', async (group) => {
 
     await provider.start()
 
-    const resource = router.routes[0] as RouteResource
+    const resource = extractRoutesList(router.toJSON())[0] as unknown as RouteResource
     const routes = resource.routes
 
     assert.isTrue(routes.find((route) => route.getName()?.endsWith('.create'))?.isDeleted())
@@ -166,7 +162,7 @@ test.group('GirouetteProvider', async (group) => {
 
     await provider.start()
 
-    const routes: Route[] = router.routes.map((r: any) => r.toJSON())
+    const routes = extractRoutesList(router.toJSON())
 
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
   })
@@ -176,7 +172,7 @@ test.group('GirouetteProvider', async (group) => {
 
     await provider.start()
 
-    const routes: Route[] = router.routes.map((r: any) => r.toJSON())
+    const routes: Route[] = extractRoutesList(router.toJSON())
 
     const slugMatcher = (routes[0].matchers.slug as any).match as RegExp
 
@@ -193,7 +189,7 @@ test.group('GirouetteProvider', async (group) => {
 
     await provider.start()
 
-    const routes: Route[] = router.routes.map((r: any) => r.toJSON())
+    const routes: Route[] = extractRoutesList(router.toJSON())
 
     assert.isTrue(routes.some((r) => r.name === 'posts.custom_regex.index'))
   })
