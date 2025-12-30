@@ -3,7 +3,12 @@ import type { ApplicationService, HttpRouterService, LoggerService } from '@adon
 import { join, relative } from 'node:path'
 import { readdir } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
-import { MiddlewareFn, ParsedNamedMiddleware, RouteMatcher } from '@adonisjs/core/types/http'
+import {
+  MiddlewareFn,
+  ParsedNamedMiddleware,
+  RouteMatcher,
+  ResourceActionNames,
+} from '@adonisjs/core/types/http'
 import {
   REFLECT_RESOURCE_MIDDLEWARE_KEY,
   REFLECT_RESOURCE_NAME_KEY,
@@ -16,9 +21,9 @@ import {
   REFLECT_RESOURCE_API_ONLY_KEY,
   REFLECT_RESOURCE_PARAMS_KEY,
 } from '../src/constants.js'
-import { RouteResource } from '@adonisjs/core/http'
+import { RouteResource, Route } from '@adonisjs/core/http'
 import { GirouetteConfig } from '../src/types.js'
-import { OneOrMore } from '@adonisjs/http-server/types'
+import { OneOrMore } from '@poppinss/utils/types'
 import { cwd } from 'node:process'
 
 /**
@@ -30,6 +35,14 @@ type GirouetteRoute = {
   name: string
   where: { key: string; matcher: RouteMatcher | string | RegExp }[]
   middleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>[]
+}
+
+/**
+ * Represents middleware configuration for resource routes
+ */
+type MiddlewareConfig = {
+  actions: ResourceActionNames | '*' | ResourceActionNames[]
+  middleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>
 }
 
 /**
@@ -67,8 +80,14 @@ export default class GirouetteProvider {
   #logger: LoggerService | null = null
   #controllersPath: string = join(cwd(), 'app')
   #config: GirouetteConfig | null = null
+  #injectedRouter: HttpRouterService | null = null
 
-  constructor(protected app: ApplicationService) {}
+  constructor(
+    protected app: ApplicationService,
+    injectedRouter?: HttpRouterService
+  ) {
+    this.#injectedRouter = injectedRouter || null
+  }
 
   /**
    * Sets the path to the controllers
@@ -89,9 +108,15 @@ export default class GirouetteProvider {
    * Starts the provider by initializing the router and registering all routes
    */
   async start() {
-    this.#router = await this.app.container.make('router')
-    this.#logger = await this.app.container.make('logger')
-    this.#config = this.app.config.get('girouette')
+    if (!this.#router) {
+      this.#router = this.#injectedRouter || (await this.app.container.make('router'))
+    }
+    if (!this.#logger) {
+      this.#logger = await this.app.container.make('logger')
+    }
+    if (!this.#config) {
+      this.#config = this.app.config.get('girouette')
+    }
     await this.#scanControllersDirectory(this.#controllersPath)
   }
 
@@ -251,7 +276,7 @@ export default class GirouetteProvider {
   /**
    * Configures a route with its name, constraints, middleware and domain
    */
-  #configureRoute(adonisRoute: any, route: GirouetteRoute, domain?: string) {
+  #configureRoute(adonisRoute: Route, route: GirouetteRoute, domain?: string) {
     if (route.name) {
       adonisRoute.as(route.name)
     }
@@ -272,7 +297,7 @@ export default class GirouetteProvider {
   /**
    * Applies route constraints (where clauses)
    */
-  #applyRouteConstraints(route: any, constraints: GirouetteRoute['where']) {
+  #applyRouteConstraints(route: Route, constraints: GirouetteRoute['where']) {
     for (const { key, matcher } of constraints) {
       route.where(key, matcher)
     }
@@ -281,7 +306,7 @@ export default class GirouetteProvider {
   /**
    * Applies middleware to a route
    */
-  #applyRouteMiddleware(route: any, middleware: GirouetteRoute['middleware']) {
+  #applyRouteMiddleware(route: Route, middleware: GirouetteRoute['middleware']) {
     for (const m of middleware) {
       route.use(m)
     }
@@ -321,6 +346,9 @@ export default class GirouetteProvider {
         resource.params(resourceParams)
       }
 
+      // Define actions (apiOnly, only, except) before applying middleware
+      this.#defineResourceActions(resource, controller)
+
       const resourceMiddleware = Reflect.getMetadata(
         REFLECT_RESOURCE_MIDDLEWARE_KEY,
         controller.controller.default
@@ -328,8 +356,6 @@ export default class GirouetteProvider {
       if (resourceMiddleware) {
         this.#applyResourceMiddleware(resource, resourceMiddleware)
       }
-
-      this.#defineResourceActions(resource, controller)
     } catch (error) {
       this.#logger?.debug({ error }, '[Girouette] Error configuring resource')
     }
@@ -338,13 +364,13 @@ export default class GirouetteProvider {
   /**
    * Applies middleware to resource routes
    */
-  #applyResourceMiddleware(resource: any, middlewareConfig: any[]) {
+  #applyResourceMiddleware(resource: RouteResource, middlewareConfig: MiddlewareConfig[]) {
     for (const { actions, middleware } of middlewareConfig) {
       resource.middleware(actions, middleware)
     }
   }
 
-  #defineResourceActions(resource: any, controller: ControllerToProcess) {
+  #defineResourceActions(resource: RouteResource, controller: ControllerToProcess) {
     const apiOnly = Reflect.getMetadata(
       REFLECT_RESOURCE_API_ONLY_KEY,
       controller.controller.default

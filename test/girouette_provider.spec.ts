@@ -1,196 +1,186 @@
 import 'reflect-metadata'
 import { test } from '@japa/runner'
-import GirouetteProvider from '../providers/girouette_provider.js'
-import app from '@adonisjs/core/services/app'
 import { join } from 'node:path'
 import { cwd } from 'node:process'
-import { HttpRouterService } from '@adonisjs/core/types'
-import { HTTP_METHODS, RESOURCE_METHODS, ResourceRoute, Route, extractRoutesList } from './utils.js'
-import { RouteResource } from '@adonisjs/core/http'
+import { TestUtilsFactory } from '@adonisjs/core/factories'
+import { HTTP_METHODS, RESOURCE_METHODS, extractRoutesList } from './utils.js'
+import type { ApplicationService, HttpRouterService } from '@adonisjs/core/types'
 
-test.group('GirouetteProvider', async (group) => {
-  let BASE_PATH = join(cwd(), 'test/controllers')
+const BASE_PATH = join(cwd(), 'test/controllers')
 
-  let router: HttpRouterService
+async function createTestApp() {
+  const testFactory = new TestUtilsFactory()
+  const testUtils = testFactory.create(new URL('../', import.meta.url))
+  await testUtils.app.init()
+  await testUtils.app.boot()
+  return testUtils.app
+}
 
-  let provider: GirouetteProvider
+async function setupRoutes(app: ApplicationService, controllersPath: string) {
+  const module = await import('../providers/girouette_provider.js')
+  const GirouetteProvider = module.default
+  const router = (await app.container.make('router')) as HttpRouterService
 
-  group.setup(async () => {
-    router = await app.container.make('router')
+  const provider = new GirouetteProvider(app)
+  provider.controllersPath = controllersPath
+  await provider.start()
+  router.commit()
 
-    provider = new GirouetteProvider(app)
-  })
+  return extractRoutesList(router.toJSON())
+}
 
+test.group('GirouetteProvider - Group Routes', () => {
   test('should register "group" routes', async ({ assert }) => {
-    provider.controllersPath = `${BASE_PATH}/group`
-
-    await provider.start()
-
-    const routes = extractRoutesList(router.toJSON())
+    const app = await createTestApp()
+    const routes = await setupRoutes(app, `${BASE_PATH}/group`)
 
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
-
     assert.isTrue(routes.every((r) => r.domain === 'admin.example.com'))
   })
 
   test('should register "group_middleware" routes', async ({ assert }) => {
-    provider.controllersPath = `${BASE_PATH}/group_middleware`
+    const app = await createTestApp()
+    const routes = await setupRoutes(app, `${BASE_PATH}/group_middleware`)
 
-    await provider.start()
-
-    const routes = extractRoutesList(router.toJSON())
-
+    assert.isTrue(routes.length > 0)
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
   })
+})
 
+test.group('GirouetteProvider - Method Routes', () => {
   test('should register "methods" routes', async ({ assert }) => {
-    provider.controllersPath = `${BASE_PATH}/methods`
+    const app = await createTestApp()
+    const routes = await setupRoutes(app, `${BASE_PATH}/methods`)
 
-    await provider.start()
-
-    const routes: Route[] = extractRoutesList(router.toJSON())
-
+    assert.isTrue(routes.length > 0)
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
-
     assert.isTrue(routes.every((r) => r.methods.every((m) => HTTP_METHODS.includes(m))))
   })
 
-  test('should register "resource" routes', async ({ assert }) => {
-    provider.controllersPath = `${BASE_PATH}/resource`
+  test('should register "route_middleware" routes', async ({ assert }) => {
+    const app = await createTestApp()
+    const routes = await setupRoutes(app, `${BASE_PATH}/route_middleware`)
 
-    await provider.start()
-
-    const resourceRoute = extractRoutesList(router.toJSON())[0] as unknown as ResourceRoute
-
-    const routes: Route[] = resourceRoute.routes.map((r: any) => r.toJSON())
-
+    assert.isTrue(routes.length > 0)
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
+  })
 
+  test('should register "where" routes', async ({ assert }) => {
+    const app = await createTestApp()
+    const routes = await setupRoutes(app, `${BASE_PATH}/where`)
+
+    assert.isAbove(routes.length, 0, 'Should have at least one route')
+    const slugMatcher = (routes[0].matchers.slug as any).match as RegExp
+
+    assert.isFalse(new RegExp(slugMatcher).test('foo~~12312'))
+    assert.isTrue(new RegExp(slugMatcher).test('333'))
+  })
+})
+
+test.group('GirouetteProvider - Resource Routes', () => {
+  test('should register "resource" routes', async ({ assert }) => {
+    const app = await createTestApp()
+    const routes = await setupRoutes(app, `${BASE_PATH}/resource`)
+
+    assert.isTrue(routes.length > 0)
+    assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
     assert.isTrue(routes.every((r) => r.methods.every((m) => HTTP_METHODS.includes(m))))
 
     const controllerMethods: string[] = routes.map(
-      (i) => (i.handler.reference as any).split('.').pop() as string
+      (r) => ((r.handler as any).reference as string).split('.').pop() as string
     )
-    assert.isTrue(controllerMethods.every((r) => RESOURCE_METHODS.includes(r.toLowerCase())))
+    assert.isTrue(controllerMethods.every((m) => RESOURCE_METHODS.includes(m.toLowerCase())))
   })
 
   test('should rename "resource" params', async ({ assert }) => {
-    provider.controllersPath = `${BASE_PATH}/resource_params`
+    const app = await createTestApp()
+    const routes = await setupRoutes(app, `${BASE_PATH}/resource_params`)
 
-    await provider.start()
-
-    const resourceRoute = extractRoutesList(router.toJSON())[0] as unknown as ResourceRoute
-
-    const routes: Route[] = resourceRoute.routes.map((r: any) => r.toJSON())
     const routesWithParams = routes.filter((r) => r.pattern.includes(':'))
 
+    assert.isTrue(routes.length > 0)
     assert.isTrue(routesWithParams.every((r) => r.pattern.startsWith('/posts')))
     assert.isTrue(routesWithParams.every((r) => r.pattern.includes(':post')))
 
-    // Test that the comments resource ID parameter is renamed from :id to :comment
     const routesWithCommentId = routes.filter((r) => r.pattern.includes('comments/:'))
     assert.isTrue(routesWithCommentId.every((r) => r.pattern.includes(':comment')))
   })
 
   test('should register "resource_middleware" routes', async ({ assert }) => {
-    provider.controllersPath = `${BASE_PATH}/resource_middleware`
+    const app = await createTestApp()
+    const routes = await setupRoutes(app, `${BASE_PATH}/resource_middleware`)
 
-    await provider.start()
-
-    const resourceRoute = extractRoutesList(router.toJSON())[0] as unknown as ResourceRoute
-
-    const routes: Route[] = resourceRoute.routes.map((r: any) => r.toJSON())
-
+    assert.isTrue(routes.length > 0)
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
-
     assert.isTrue(routes.every((r) => r.methods.every((m) => HTTP_METHODS.includes(m))))
 
     const controllerMethods: string[] = routes.map(
-      (i) => (i.handler.reference as any).split('.').pop() as string
+      (r) => ((r.handler as any).reference as string).split('.').pop() as string
     )
-    assert.isTrue(controllerMethods.every((r) => RESOURCE_METHODS.includes(r.toLowerCase())))
+    assert.isTrue(controllerMethods.every((m) => RESOURCE_METHODS.includes(m.toLowerCase())))
   })
+})
 
-  test('should not register non "api-only" resource routes ', async ({ assert }) => {
-    provider.controllersPath = `${BASE_PATH}/resource_api_only`
+test.group('GirouetteProvider - Resource Filtering', () => {
+  test('should not register non "api-only" resource routes', async ({ assert }) => {
+    const app = await createTestApp()
+    const routes = await setupRoutes(app, `${BASE_PATH}/resource_api_only`)
 
-    await provider.start()
+    assert.isTrue(routes.length > 0)
 
-    const resource = extractRoutesList(router.toJSON())[0] as unknown as RouteResource
-    const routes = resource.routes
+    assert.isFalse(routes.some((r) => r.name?.endsWith('.create')))
+    assert.isFalse(routes.some((r) => r.name?.endsWith('.edit')))
 
-    assert.isTrue(routes.find((route) => route.getName()?.endsWith('.create'))!.isDeleted())
-    assert.isTrue(routes.find((route) => route.getName()?.endsWith('.edit'))!.isDeleted())
+    assert.isTrue(routes.some((r) => r.name?.endsWith('.index')))
+    assert.isTrue(routes.some((r) => r.name?.endsWith('.store')))
+    assert.isTrue(routes.some((r) => r.name?.endsWith('.show')))
+    assert.isTrue(routes.some((r) => r.name?.endsWith('.update')))
+    assert.isTrue(routes.some((r) => r.name?.endsWith('.destroy')))
   })
 
   test('should register specified "only" resource routes', async ({ assert }) => {
-    provider.controllersPath = `${BASE_PATH}/resource_only`
+    const app = await createTestApp()
+    const routes = await setupRoutes(app, `${BASE_PATH}/resource_only`)
 
-    await provider.start()
+    assert.isTrue(routes.length > 0)
 
-    const resource = extractRoutesList(router.toJSON())[0] as unknown as RouteResource
-    const routes = resource.routes
+    assert.isTrue(routes.some((r) => r.name?.endsWith('.update')))
+    assert.isTrue(routes.some((r) => r.name?.endsWith('.destroy')))
 
-    assert.isFalse(routes.find((route) => route.getName()?.endsWith('.update'))?.isDeleted())
-    assert.isFalse(routes.find((route) => route.getName()?.endsWith('.destroy'))?.isDeleted())
-    assert.isTrue(routes.find((route) => route.getName()?.endsWith('.index'))?.isDeleted())
-    assert.isTrue(routes.find((route) => route.getName()?.endsWith('.store'))?.isDeleted())
-    assert.isTrue(routes.find((route) => route.getName()?.endsWith('.show'))?.isDeleted())
-    assert.isTrue(routes.find((route) => route.getName()?.endsWith('.edit'))?.isDeleted())
-    assert.isTrue(routes.find((route) => route.getName()?.endsWith('.create'))?.isDeleted())
+    assert.isFalse(routes.some((r) => r.name?.endsWith('.index')))
+    assert.isFalse(routes.some((r) => r.name?.endsWith('.store')))
+    assert.isFalse(routes.some((r) => r.name?.endsWith('.show')))
+    assert.isFalse(routes.some((r) => r.name?.endsWith('.edit')))
+    assert.isFalse(routes.some((r) => r.name?.endsWith('.create')))
   })
 
   test('should not register "except" resource routes', async ({ assert }) => {
-    provider.controllersPath = `${BASE_PATH}/resource_except`
+    const app = await createTestApp()
+    const routes = await setupRoutes(app, `${BASE_PATH}/resource_except`)
 
-    await provider.start()
+    assert.isTrue(routes.length > 0)
 
-    const resource = extractRoutesList(router.toJSON())[0] as unknown as RouteResource
-    const routes = resource.routes
+    assert.isFalse(routes.some((r) => r.name?.endsWith('.create')))
+    assert.isFalse(routes.some((r) => r.name?.endsWith('.show')))
 
-    assert.isTrue(routes.find((route) => route.getName()?.endsWith('.create'))?.isDeleted())
-    assert.isTrue(routes.find((route) => route.getName()?.endsWith('.show'))?.isDeleted())
-    assert.isFalse(routes.find((route) => route.getName()?.endsWith('.index'))?.isDeleted())
-    assert.isFalse(routes.find((route) => route.getName()?.endsWith('.store'))?.isDeleted())
-    assert.isFalse(routes.find((route) => route.getName()?.endsWith('.destroy'))?.isDeleted())
-    assert.isFalse(routes.find((route) => route.getName()?.endsWith('.edit'))?.isDeleted())
-    assert.isFalse(routes.find((route) => route.getName()?.endsWith('.update'))?.isDeleted())
+    assert.isTrue(routes.some((r) => r.name?.endsWith('.index')))
+    assert.isTrue(routes.some((r) => r.name?.endsWith('.store')))
+    assert.isTrue(routes.some((r) => r.name?.endsWith('.destroy')))
+    assert.isTrue(routes.some((r) => r.name?.endsWith('.edit')))
+    assert.isTrue(routes.some((r) => r.name?.endsWith('.update')))
   })
+})
 
-  test('should register "route_middleware" routes', async ({ assert }) => {
-    provider.controllersPath = `${BASE_PATH}/route_middleware`
-
-    await provider.start()
-
-    const routes = extractRoutesList(router.toJSON())
-
-    assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
-  })
-
-  test('should register "where" routes', async ({ assert }) => {
-    provider.controllersPath = `${BASE_PATH}/where`
-
-    await provider.start()
-
-    const routes: Route[] = extractRoutesList(router.toJSON())
-
-    const slugMatcher = (routes[0].matchers.slug as any).match as RegExp
-
-    assert.isFalse(new RegExp(slugMatcher).test('foo~~12312'))
-
-    assert.isTrue(new RegExp(slugMatcher).test('333'))
-  })
-
+test.group('GirouetteProvider - Config', () => {
   test('should scan controllers with custom regex config', async ({ assert }) => {
-    provider.controllersPath = `${BASE_PATH}/custom_regex`
+    const app = await createTestApp()
     app.config.set('girouette', {
       controllersGlob: /_controller_domain\.(ts|js)$/,
     })
 
-    await provider.start()
+    const routes = await setupRoutes(app, `${BASE_PATH}/custom_regex`)
 
-    const routes: Route[] = extractRoutesList(router.toJSON())
-
+    assert.isTrue(routes.length > 0)
     assert.isTrue(routes.some((r) => r.name === 'posts.custom_regex.index'))
   })
 })
