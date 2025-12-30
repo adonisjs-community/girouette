@@ -1,5 +1,6 @@
-import { MiddlewareFn, OneOrMore, ParsedNamedMiddleware } from '@adonisjs/core/types/http'
+import { MiddlewareFn, ParsedNamedMiddleware } from '@adonisjs/core/types/http'
 import { REFLECT_ROUTES_KEY } from '../constants.js'
+import { OneOrMore } from '@poppinss/utils/types'
 
 /**
  * The RouteMiddleware decorator applies middleware to a specific route.

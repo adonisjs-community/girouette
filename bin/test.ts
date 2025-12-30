@@ -58,9 +58,6 @@ new Ignitor(APP_ROOT, { importer: IMPORTER })
       ...app.rcFile.tests,
       files: ['test/**/*.spec.ts'],
       plugins: [assert()],
-      configureSuite(suite) {
-        return suite.setup(() => testUtils.httpServer().start())
-      },
     })
   })
   .run(async () => run())
