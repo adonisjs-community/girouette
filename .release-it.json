@@ -1,0 +1,20 @@
+{
+  "git": {
+    "commitMessage": "Release ${version}",
+    "tagAnnotation": "Release ${version}",
+    "tagName": "${version}"
+  },
+  "github": {
+    "release": true,
+    "releaseName": "v${version}",
+    "autoGenerate": true,
+    "preRelease": "auto"
+  },
+  "npm": {
+    "publish": true
+  },
+  "hooks": {
+    "before:init": ["npm run build"],
+    "after:bump": ["npm run build"]
+  }
+}

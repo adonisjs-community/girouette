@@ -7,6 +7,7 @@ coverage
 *.sublime-project
 *.sublime-workspace
 *.log
+*.env
 build
 dist
 yarn.lock
