@@ -22,10 +22,6 @@ export interface Route {
   execute: (...args: any[]) => any
 }
 
-export interface ResourceRoute {
-  routes: Route[]
-}
-
 export function extractRoutesList(routes: ReturnType<HttpRouterService['toJSON']>) {
   return Object.values(routes).flat() as Route[]
 }

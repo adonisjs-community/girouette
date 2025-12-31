@@ -201,7 +201,7 @@ export default class GirouetteProvider {
         controller.controller.default
       ) as string | undefined
 
-      const finalRoute = this.#applyGroupConfiguration(route, group, groupMiddleware)
+      const finalRoute = this.#applyGroupConfiguration(route, methodName, group, groupMiddleware)
       const adonisRoute = this.#createRoute(finalRoute, controller, methodName)
       this.#configureRoute(adonisRoute, finalRoute, groupDomain)
     } catch (error) {
@@ -214,6 +214,7 @@ export default class GirouetteProvider {
    */
   #applyGroupConfiguration(
     route: GirouetteRoute,
+    methodName: string,
     group?: GroupMetadata,
     groupMiddleware?: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>
   ) {
@@ -224,7 +225,9 @@ export default class GirouetteProvider {
       pattern: group?.prefix
         ? this.#prefixRoutePattern(route.pattern, group.prefix)
         : route.pattern,
-      name: group?.name ? this.#prefixRouteName(route.name, group.name) : route.name,
+      name: group?.name
+        ? this.#prefixRouteName(route.name, group.name, methodName)
+        : route.name || methodName,
       middleware: this.#mergeMiddleware(route.middleware, groupMiddleware),
     }
   }
@@ -232,7 +235,7 @@ export default class GirouetteProvider {
   /**
    * Prefixes a route pattern with a group prefix
    */
-  #prefixRoutePattern(pattern: string, prefix: string): string {
+  #prefixRoutePattern(pattern: string, prefix: string) {
     const cleanPrefix = prefix.startsWith('/') ? prefix : `/${prefix}`
     const cleanPattern = pattern.startsWith('/') ? pattern.slice(1) : pattern
     return `${cleanPrefix}/${cleanPattern}`
@@ -240,9 +243,11 @@ export default class GirouetteProvider {
 
   /**
    * Prefixes a route name with a group prefix
+   * If no explicit name is provided, uses the methodName as fallback
    */
-  #prefixRouteName(name: string, prefix: string): string {
-    return name ? `${prefix}.${name}` : name
+  #prefixRouteName(name: string | undefined, prefix: string, methodName: string) {
+    const routeName = name || methodName
+    return routeName.startsWith(`${prefix}.`) ? routeName : `${prefix}.${routeName}`
   }
 
   /**
