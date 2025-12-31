@@ -1,5 +1,5 @@
 import { MiddlewareFn, ParsedNamedMiddleware, ResourceActionNames } from '@adonisjs/core/types/http'
-import { OneOrMore } from '@poppinss/utils/types'
+import { OneOrMore } from '../types.js'
 import { REFLECT_RESOURCE_MIDDLEWARE_KEY } from '../constants.js'
 
 /**

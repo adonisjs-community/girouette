@@ -1,14 +1,10 @@
 import 'reflect-metadata'
 import type { ApplicationService, HttpRouterService, LoggerService } from '@adonisjs/core/types'
-import { join, relative } from 'node:path'
+import { join } from 'node:path'
+import { relative as posixRelative } from 'node:path/posix'
 import { readdir } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
-import {
-  MiddlewareFn,
-  ParsedNamedMiddleware,
-  RouteMatcher,
-  ResourceActionNames,
-} from '@adonisjs/core/types/http'
+import { MiddlewareFn, ParsedNamedMiddleware, ResourceActionNames } from '@adonisjs/core/types/http'
 import {
   REFLECT_RESOURCE_MIDDLEWARE_KEY,
   REFLECT_RESOURCE_NAME_KEY,
@@ -22,44 +18,15 @@ import {
   REFLECT_RESOURCE_PARAMS_KEY,
 } from '../src/constants.js'
 import { RouteResource, Route } from '@adonisjs/core/http'
-import { GirouetteConfig } from '../src/types.js'
-import { OneOrMore } from '@poppinss/utils/types'
+import {
+  ControllerToProcess,
+  GirouetteConfig,
+  GirouetteRoute,
+  GroupMetadata,
+  MiddlewareConfig,
+  OneOrMore,
+} from '../src/types.js'
 import { cwd } from 'node:process'
-
-/**
- * Represents a route configuration within the Girouette system
- */
-type GirouetteRoute = {
-  method: string
-  pattern: string
-  name: string
-  where: { key: string; matcher: RouteMatcher | string | RegExp }[]
-  middleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>[]
-}
-
-/**
- * Represents middleware configuration for resource routes
- */
-type MiddlewareConfig = {
-  actions: ResourceActionNames | '*' | ResourceActionNames[]
-  middleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>
-}
-
-/**
- * Represent a route that should be processed
- */
-type ControllerToProcess = {
-  controller: any
-  importUrl: URL
-}
-
-/**
- * Represents group configuration metadata
- */
-type GroupMetadata = {
-  name?: string
-  prefix?: string
-}
 
 /**
  * The GirouetteProvider is responsible for registering all decorated routes with AdonisJS.
@@ -71,7 +38,7 @@ type GroupMetadata = {
  * // In your adonisrc.ts
  * providers: [
  *   () => import('@adonisjs/core/providers/app_provider'),
- *   () => import('./providers/girouette_provider')
+ *   () => import('@adonisjs-community/girouette/providers/girouette_provider')
  * ]
  * ```
  */
@@ -80,14 +47,8 @@ export default class GirouetteProvider {
   #logger: LoggerService | null = null
   #controllersPath: string = join(cwd(), 'app')
   #config: GirouetteConfig | null = null
-  #injectedRouter: HttpRouterService | null = null
 
-  constructor(
-    protected app: ApplicationService,
-    injectedRouter?: HttpRouterService
-  ) {
-    this.#injectedRouter = injectedRouter || null
-  }
+  constructor(protected app: ApplicationService) {}
 
   /**
    * Sets the path to the controllers
@@ -109,7 +70,7 @@ export default class GirouetteProvider {
    */
   async start() {
     if (!this.#router) {
-      this.#router = this.#injectedRouter || (await this.app.container.make('router'))
+      this.#router = await this.app.container.make('router')
     }
     if (!this.#logger) {
       this.#logger = await this.app.container.make('logger')
@@ -143,11 +104,11 @@ export default class GirouetteProvider {
   /**
    * Checks if a file is a controller file based on its name
    */
-  #isControllerFile(fileName: string): boolean {
+  #isControllerFile(fileName: string) {
     if (!this.#config?.controllersGlob) {
       return fileName.endsWith('_controller.ts') || fileName.endsWith('_controller.js')
     }
-    return !!this.#config?.controllersGlob.test(fileName)
+    return this.#config?.controllersGlob.test(fileName)
   }
 
   /**
@@ -164,7 +125,7 @@ export default class GirouetteProvider {
       this.#registerControllerRoutes(controllerToProcess)
       this.#registerResourceRoutes(controllerToProcess)
     } catch (error) {
-      this.#logger?.debug({ error }, '[Girouette] Error processing controller file')
+      this.#logger?.error({ error, filePath }, '[Girouette] Error processing controller file')
     }
   }
 
@@ -172,15 +133,14 @@ export default class GirouetteProvider {
    * Registers all decorated routes from a controller
    */
   #registerControllerRoutes(controller: ControllerToProcess) {
-    try {
-      const routes = Reflect.getMetadata(REFLECT_ROUTES_KEY, controller.controller.default)
-      if (!routes) return
+    const routes = this.#getControllerMetadata<Record<string, GirouetteRoute>>(
+      REFLECT_ROUTES_KEY,
+      controller.controller.default
+    )
+    if (!routes) return
 
-      for (const methodName in routes) {
-        this.#registerSingleRoute(controller, methodName, routes[methodName])
-      }
-    } catch (error) {
-      this.#logger?.debug({ error }, '[Girouette] Error registering controller routes')
+    for (const methodName in routes) {
+      this.#registerSingleRoute(controller, methodName, routes[methodName])
     }
   }
 
@@ -188,25 +148,21 @@ export default class GirouetteProvider {
    * Registers a single route with the AdonisJS router, applying any group configurations
    */
   #registerSingleRoute(controller: ControllerToProcess, methodName: string, route: GirouetteRoute) {
-    try {
-      const group = Reflect.getMetadata(REFLECT_GROUP_KEY, controller.controller.default) as
-        | GroupMetadata
-        | undefined
-      const groupMiddleware = Reflect.getMetadata(
-        REFLECT_GROUP_MIDDLEWARE_KEY,
-        controller.controller.default
-      ) as OneOrMore<MiddlewareFn | ParsedNamedMiddleware> | undefined
-      const groupDomain = Reflect.getMetadata(
-        REFLECT_GROUP_DOMAIN_KEY,
-        controller.controller.default
-      ) as string | undefined
+    const group = this.#getControllerMetadata<GroupMetadata>(
+      REFLECT_GROUP_KEY,
+      controller.controller.default
+    )
+    const groupMiddleware = this.#getControllerMetadata<
+      OneOrMore<MiddlewareFn | ParsedNamedMiddleware>
+    >(REFLECT_GROUP_MIDDLEWARE_KEY, controller.controller.default)
+    const groupDomain = this.#getControllerMetadata<string>(
+      REFLECT_GROUP_DOMAIN_KEY,
+      controller.controller.default
+    )
 
-      const finalRoute = this.#applyGroupConfiguration(route, methodName, group, groupMiddleware)
-      const adonisRoute = this.#createRoute(finalRoute, controller, methodName)
-      this.#configureRoute(adonisRoute, finalRoute, groupDomain)
-    } catch (error) {
-      this.#logger?.debug({ error }, '[Girouette] Error registering single route')
-    }
+    const finalRoute = this.#applyGroupConfiguration(route, methodName, group, groupMiddleware)
+    const adonisRoute = this.#createRoute(finalRoute, controller, methodName)
+    this.#configureRoute(adonisRoute, finalRoute, groupDomain)
   }
 
   /**
@@ -257,24 +213,17 @@ export default class GirouetteProvider {
     routeMiddleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>[],
     groupMiddleware?: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>
   ) {
-    const middleware = [...(routeMiddleware || [])]
-    if (groupMiddleware) {
-      if (Array.isArray(groupMiddleware)) {
-        middleware.unshift(...groupMiddleware)
-      } else {
-        middleware.unshift(groupMiddleware)
-      }
-    }
-    return middleware
+    if (!groupMiddleware) return [...(routeMiddleware || [])]
+
+    const groupArray = Array.isArray(groupMiddleware) ? groupMiddleware : [groupMiddleware]
+    return [...groupArray, ...(routeMiddleware || [])]
   }
 
   /**
    * Creates a new route in the AdonisJS router
    */
   #createRoute(route: GirouetteRoute, controller: ControllerToProcess, methodName: string) {
-    const relativePath = relative(this.app.appRoot.pathname, controller.importUrl.pathname)
-      .replaceAll('\\', '/')
-      .replace(/\.ts$/, '.js')
+    const relativePath = this.#getControllerReference(controller.importUrl)
     return this.#router!.route(route.pattern, [route.method], `./${relativePath}.${methodName}`)
   }
 
@@ -287,11 +236,15 @@ export default class GirouetteProvider {
     }
 
     if (route.where?.length) {
-      this.#applyRouteConstraints(adonisRoute, route.where)
+      for (const { key, matcher } of route.where) {
+        adonisRoute.where(key, matcher)
+      }
     }
 
     if (route.middleware?.length) {
-      this.#applyRouteMiddleware(adonisRoute, route.middleware)
+      for (const m of route.middleware) {
+        adonisRoute.use(m)
+      }
     }
 
     if (domain) {
@@ -300,41 +253,24 @@ export default class GirouetteProvider {
   }
 
   /**
-   * Applies route constraints (where clauses)
-   */
-  #applyRouteConstraints(route: Route, constraints: GirouetteRoute['where']) {
-    for (const { key, matcher } of constraints) {
-      route.where(key, matcher)
-    }
-  }
-
-  /**
-   * Applies middleware to a route
-   */
-  #applyRouteMiddleware(route: Route, middleware: GirouetteRoute['middleware']) {
-    for (const m of middleware) {
-      route.use(m)
-    }
-  }
-
-  /**
    * Registers resource routes for a controller
    */
   #registerResourceRoutes(controller: ControllerToProcess) {
-    try {
-      const resourceName = Reflect.getMetadata(
-        REFLECT_RESOURCE_NAME_KEY,
-        controller.controller.default
-      )
-      if (!resourceName) return
+    const resourceName = this.#getControllerMetadata<string>(
+      REFLECT_RESOURCE_NAME_KEY,
+      controller.controller.default
+    )
+    if (!resourceName) return
 
-      const relativePath = relative(this.app.appRoot.pathname, controller.importUrl.pathname)
-        .replaceAll('\\', '/')
-        .replace(/\.ts$/, '.js')
+    try {
+      const relativePath = this.#getControllerReference(controller.importUrl)
       const resource = this.#router!.resource(resourceName, `./${relativePath}`)
       this.#configureResource(resource, controller)
     } catch (error) {
-      this.#logger?.debug({ error }, '[Girouette] Error registering resource routes')
+      this.#logger?.error(
+        { error, resourceName, controllerPath: controller.importUrl.pathname },
+        '[Girouette] Error registering resource routes'
+      )
     }
   }
 
@@ -342,41 +278,32 @@ export default class GirouetteProvider {
    * Configures a resource with its name and middleware
    */
   #configureResource(resource: RouteResource, controller: ControllerToProcess) {
-    try {
-      const resourceParams = Reflect.getMetadata(
-        REFLECT_RESOURCE_PARAMS_KEY,
-        controller.controller.default
-      )
-      if (resourceParams) {
-        resource.params(resourceParams)
-      }
+    const resourceParams = this.#getControllerMetadata<Record<string, string>>(
+      REFLECT_RESOURCE_PARAMS_KEY,
+      controller.controller.default
+    )
+    if (resourceParams) {
+      resource.params(resourceParams)
+    }
 
-      // Define actions (apiOnly, only, except) before applying middleware
-      this.#defineResourceActions(resource, controller)
+    this.#defineResourceActions(resource, controller)
 
-      const resourceMiddleware = Reflect.getMetadata(
-        REFLECT_RESOURCE_MIDDLEWARE_KEY,
-        controller.controller.default
-      )
-      if (resourceMiddleware) {
-        this.#applyResourceMiddleware(resource, resourceMiddleware)
+    const resourceMiddleware = this.#getControllerMetadata<MiddlewareConfig[]>(
+      REFLECT_RESOURCE_MIDDLEWARE_KEY,
+      controller.controller.default
+    )
+    if (resourceMiddleware) {
+      for (const { actions, middleware } of resourceMiddleware) {
+        resource.middleware(actions, middleware)
       }
-    } catch (error) {
-      this.#logger?.debug({ error }, '[Girouette] Error configuring resource')
     }
   }
 
   /**
-   * Applies middleware to resource routes
+   * Defines resource actions using apiOnly, only, and except
    */
-  #applyResourceMiddleware(resource: RouteResource, middlewareConfig: MiddlewareConfig[]) {
-    for (const { actions, middleware } of middlewareConfig) {
-      resource.middleware(actions, middleware)
-    }
-  }
-
   #defineResourceActions(resource: RouteResource, controller: ControllerToProcess) {
-    const apiOnly = Reflect.getMetadata(
+    const apiOnly = this.#getControllerMetadata<boolean>(
       REFLECT_RESOURCE_API_ONLY_KEY,
       controller.controller.default
     )
@@ -384,14 +311,34 @@ export default class GirouetteProvider {
       resource.apiOnly()
     }
 
-    const only = Reflect.getMetadata(REFLECT_RESOURCE_ONLY_KEY, controller.controller.default)
+    const only = this.#getControllerMetadata<ResourceActionNames[]>(
+      REFLECT_RESOURCE_ONLY_KEY,
+      controller.controller.default
+    )
     if (only) {
       resource.only(only)
     }
 
-    const except = Reflect.getMetadata(REFLECT_RESOURCE_EXCEPT_KEY, controller.controller.default)
+    const except = this.#getControllerMetadata<ResourceActionNames[]>(
+      REFLECT_RESOURCE_EXCEPT_KEY,
+      controller.controller.default
+    )
     if (except) {
       resource.except(except)
     }
+  }
+
+  /**
+   * Safely reads metadata from a controller class
+   */
+  #getControllerMetadata<T>(key: string, controllerClass: FunctionConstructor): T | undefined {
+    return Reflect.getMetadata(key, controllerClass)
+  }
+
+  /**
+   * Converts controller import URL to relative reference path
+   */
+  #getControllerReference(importUrl: URL): string {
+    return posixRelative(this.app.appRoot.pathname, importUrl.pathname).replace(/\.ts$/, '.js')
   }
 }

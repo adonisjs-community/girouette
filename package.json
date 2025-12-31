@@ -56,7 +56,6 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@poppinss/utils": "7.0.0-next.4",
     "reflect-metadata": "^0.2.2"
   },
   "peerDependencies": {
