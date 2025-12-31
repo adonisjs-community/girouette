@@ -16,9 +16,17 @@
     "build/configure.js"
   ],
   "exports": {
-    ".": "./build/index.js",
-    "./girouette_provider": "./build/providers/girouette_provider.js"
+    ".": {
+      "import": "./build/index.js",
+      "types": "./build/index.d.ts"
+    },
+    "./girouette_provider": {
+      "import": "./build/providers/girouette_provider.js",
+      "types": "./build/providers/girouette_provider.d.ts"
+    }
   },
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
   "scripts": {
     "clean": "del-cli build",
     "typecheck": "tsc --noEmit",
