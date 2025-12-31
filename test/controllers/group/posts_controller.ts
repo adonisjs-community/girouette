@@ -1,10 +1,10 @@
 import { HttpContext } from '@adonisjs/core/http'
 import { Get, Group, GroupDomain } from '../../../index.js'
 
-@Group({ name: '/posts', prefix: '/posts' })
+@Group({ name: 'posts', prefix: '/posts' })
 @GroupDomain('admin.example.com')
 export default class PostsController {
-  @Get('/', 'posts')
+  @Get('/')
   async index({}: HttpContext) {}
 
   @Get('/:id', 'posts.id')

@@ -35,6 +35,7 @@ test.group('GirouetteProvider - Group Routes', () => {
     const routes = await setupRoutes(app, `${BASE_PATH}/group`)
 
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
+    assert.isTrue(routes.every((r) => r.name.startsWith('posts.')))
     assert.isTrue(routes.every((r) => r.domain === 'admin.example.com'))
   })
 
