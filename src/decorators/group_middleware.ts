@@ -1,6 +1,6 @@
 import { MiddlewareFn, ParsedNamedMiddleware } from '@adonisjs/core/types/http'
 import { REFLECT_GROUP_MIDDLEWARE_KEY } from '../constants.js'
-import { OneOrMore } from '@poppinss/utils/types'
+import { OneOrMore } from '../types.js'
 
 /**
  * The GroupMiddleware decorator allows you to apply middleware to all routes within
