@@ -5,6 +5,7 @@ import { readdir, writeFile, mkdir, readFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 import { createHash } from 'node:crypto'
 import { hmrRouteDetector } from '../src/hmr_detector.js'
+import { parseRouteDecorators } from '../src/static_route_parser.js'
 import { MiddlewareFn, ParsedNamedMiddleware, ResourceActionNames } from '@adonisjs/core/types/http'
 import {
   REFLECT_RESOURCE_MIDDLEWARE_KEY,
@@ -69,6 +70,112 @@ export default class GirouetteProvider {
   }
 
   /**
+   * Quick check if any controller decorators changed (cold start optimization)
+   * Uses static parsing - no imports needed!
+   * Returns: { changed: boolean, currentHash: string }
+   */
+  async #checkIfDecoratorsChanged(): Promise<{ changed: boolean; currentHash: string }> {
+    const cacheFilePath = join(this.app.appRoot.pathname, 'start', '.girouette-decorators-cache')
+    this.#logger?.debug(`[Girouette] Decorator cache path: ${cacheFilePath}`)
+    console.log(`[Girouette DEBUG] Decorator cache path: ${cacheFilePath}`)
+
+    try {
+      // Calculate hash of all controller decorators
+      this.#logger?.debug('[Girouette] Calculating current decorator hash...')
+      const currentHash = await this.#hashAllDecorators()
+      this.#logger?.info(`[Girouette] Current decorators hash: ${currentHash.substring(0, 8)}...`)
+      console.log(`[Girouette DEBUG] Current decorators hash: ${currentHash.substring(0, 8)}...`)
+
+      // Load previous hash
+      let previousHash: string | null = null
+      try {
+        const cachedContent = await readFile(cacheFilePath, 'utf-8')
+        previousHash = cachedContent.trim()
+        this.#logger?.info(
+          `[Girouette] Previous decorators hash: ${previousHash.substring(0, 8)}...`
+        )
+        console.log(
+          `[Girouette DEBUG] Previous decorators hash: ${previousHash.substring(0, 8)}...`
+        )
+      } catch (error) {
+        // No cache, decorators changed
+        this.#logger?.info('[Girouette] No decorator cache found, will perform full scan')
+        console.log('[Girouette DEBUG] No decorator cache found, will perform full scan')
+        return { changed: true, currentHash }
+      }
+
+      // Compare
+      const changed = currentHash !== previousHash
+
+      if (changed) {
+        this.#logger?.info('[Girouette] Decorator hashes differ, will perform full scan')
+      } else {
+        this.#logger?.info('[Girouette] Decorator hashes match, skipping scan')
+      }
+
+      return { changed, currentHash }
+    } catch (error) {
+      // On error, assume changed
+      this.#logger?.error({ error }, '[Girouette] Error checking decorator cache, assuming changed')
+      return { changed: true, currentHash: '' }
+    }
+  }
+
+  /**
+   * Write the decorator cache after successful scan
+   */
+  async #writeDecoratorCache(hash: string): Promise<void> {
+    const cacheFilePath = join(this.app.appRoot.pathname, 'start', '.girouette-decorators-cache')
+    this.#logger?.debug(`[Girouette] Writing decorator cache: ${hash.substring(0, 8)}...`)
+    console.log(`[Girouette DEBUG] Writing decorator cache to: ${cacheFilePath}`)
+    console.log(`[Girouette DEBUG] Hash to write: ${hash.substring(0, 8)}...`)
+
+    try {
+      // Ensure start directory exists
+      const startDir = join(this.app.appRoot.pathname, 'start')
+      await mkdir(startDir, { recursive: true })
+      console.log(`[Girouette DEBUG] Start directory ensured: ${startDir}`)
+      await writeFile(cacheFilePath, hash, 'utf-8')
+      this.#logger?.debug('[Girouette] Decorator cache written successfully')
+      console.log('[Girouette DEBUG] Decorator cache written successfully')
+    } catch (error) {
+      this.#logger?.error({ error }, '[Girouette] Error writing decorator cache')
+      console.error('[Girouette DEBUG] Error writing decorator cache:', error)
+    }
+  }
+
+  /**
+   * Hash all controller decorators
+   */
+  async #hashAllDecorators(): Promise<string> {
+    const hashes: string[] = []
+    await this.#collectDecoratorHashes(this.#controllersPath, hashes)
+    hashes.sort()
+    return createHash('sha256').update(hashes.join('\n')).digest('hex')
+  }
+
+  /**
+   * Recursively collect decorator hashes
+   */
+  async #collectDecoratorHashes(directory: string, hashes: string[]): Promise<void> {
+    const files = await readdir(directory, { withFileTypes: true })
+
+    for (const file of files) {
+      const fullPath = join(directory, file.name)
+
+      if (file.isDirectory()) {
+        await this.#collectDecoratorHashes(fullPath, hashes)
+        continue
+      }
+
+      if (this.#isControllerFile(file.name)) {
+        const hash = await parseRouteDecorators(fullPath)
+        hashes.push(hash)
+      }
+    }
+  }
+
+  /**
    * Starts the provider by scanning controllers and generating routes.ts
    */
   async start() {
@@ -81,16 +188,37 @@ export default class GirouetteProvider {
 
     // Clear previous routes (important for dev server restarts)
     this.#routeLines = []
-    this.#logger?.debug('[Girouette] Cleared previous routes')
 
-    // Step 1: Scan controllers and collect route definitions
+    // Step 1: Quick check - did any controller decorators change?
+    const { changed: decoratorsChanged, currentHash: decoratorHash } =
+      await this.#checkIfDecoratorsChanged()
+
+    if (!decoratorsChanged) {
+      this.#logger?.info('[Girouette] ✓ No decorator changes detected, skipping scan (fast path)')
+      return
+    }
+
+    this.#logger?.info('[Girouette] Decorator changes detected, scanning controllers...')
+
+    // Step 2: Scan controllers and collect route definitions
     await this.#scanControllersDirectory(this.#controllersPath)
     this.#logger?.info(
       `[Girouette] Scanned controllers, collected ${this.#routeLines.length} routes`
     )
 
-    // Step 2: Generate start/routes.ts file
+    // Step 3: Generate start/routes.ts file
     await this.#generateRoutesFile()
+
+    // Step 4: Write decorator cache after successful scan
+    console.log(
+      `[Girouette DEBUG] decoratorHash value: ${decoratorHash ? decoratorHash.substring(0, 8) + '...' : 'EMPTY/FALSY'}`
+    )
+    if (decoratorHash) {
+      console.log('[Girouette DEBUG] Calling writeDecoratorCache...')
+      await this.#writeDecoratorCache(decoratorHash)
+    } else {
+      console.log('[Girouette DEBUG] NOT calling writeDecoratorCache - hash is empty!')
+    }
   }
 
   /**
