@@ -23,6 +23,10 @@
     "./girouette_provider": {
       "import": "./build/providers/girouette_provider.js",
       "types": "./build/providers/girouette_provider.d.ts"
+    },
+    "./hooks": {
+      "import": "./build/src/hooks/generate_routes.js",
+      "types": "./build/src/hooks/generate_routes.d.ts"
     }
   },
   "main": "./build/index.js",
