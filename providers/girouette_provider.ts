@@ -1,8 +1,10 @@
 import 'reflect-metadata'
 import type { ApplicationService, LoggerService } from '@adonisjs/core/types'
 import { join } from 'node:path'
-import { readdir, writeFile, mkdir } from 'node:fs/promises'
+import { readdir, writeFile, mkdir, readFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
+import { createHash } from 'node:crypto'
+import { hmrRouteDetector } from '../src/hmr_detector.js'
 import { MiddlewareFn, ParsedNamedMiddleware, ResourceActionNames } from '@adonisjs/core/types/http'
 import {
   REFLECT_RESOURCE_MIDDLEWARE_KEY,
@@ -47,6 +49,26 @@ export default class GirouetteProvider {
   }
 
   /**
+   * Check if a controller's routes changed (for HMR detection)
+   * Returns true if routes changed and full reload is needed
+   */
+  async checkControllerRoutesChanged(controllerPath: string): Promise<boolean> {
+    try {
+      const path = pathToFileURL(controllerPath)
+      const controller = await import(`${path.href}?t=${Date.now()}`)
+
+      if (!controller.default) {
+        return false
+      }
+
+      return hmrRouteDetector.didRoutesChange(controllerPath, controller.default)
+    } catch (error) {
+      this.#logger?.error({ error, controllerPath }, '[Girouette] Error checking controller routes')
+      return false
+    }
+  }
+
+  /**
    * Starts the provider by scanning controllers and generating routes.ts
    */
   async start() {
@@ -57,24 +79,58 @@ export default class GirouetteProvider {
       this.#config = this.app.config.get('girouette')
     }
 
+    // Clear previous routes (important for dev server restarts)
+    this.#routeLines = []
+    this.#logger?.debug('[Girouette] Cleared previous routes')
+
     // Step 1: Scan controllers and collect route definitions
     await this.#scanControllersDirectory(this.#controllersPath)
+    this.#logger?.info(
+      `[Girouette] Scanned controllers, collected ${this.#routeLines.length} routes`
+    )
 
     // Step 2: Generate start/routes.ts file
     await this.#generateRoutesFile()
   }
 
   /**
-   * Generates a standard start/routes.ts file
+   * Generates a standard start/routes.ts file (only if routes changed)
    */
   async #generateRoutesFile() {
     const startDir = join(this.app.appRoot.pathname, 'start')
     const routesFilePath = join(startDir, 'routes.ts')
+    const cacheFilePath = join(startDir, '.girouette-cache')
 
     // Create start directory if it doesn't exist
     await mkdir(startDir, { recursive: true })
 
-    // Generate the routes file content using #generated/controllers
+    // Generate route content (just the routes, not the full file)
+    const routeContent = this.#routeLines.join('\n')
+    this.#logger?.debug(`[Girouette] Generated ${this.#routeLines.length} route lines`)
+
+    // Calculate hash of route definitions
+    const currentHash = createHash('sha256').update(routeContent).digest('hex')
+    this.#logger?.info(`[Girouette] Current routes hash: ${currentHash.substring(0, 8)}...`)
+
+    // Check if routes have changed by comparing with cached hash
+    let previousHash: string | null = null
+    try {
+      const cachedContent = await readFile(cacheFilePath, 'utf-8')
+      previousHash = cachedContent.trim()
+      this.#logger?.info(`[Girouette] Previous routes hash: ${previousHash.substring(0, 8)}...`)
+    } catch (error) {
+      this.#logger?.info('[Girouette] No cache file found, will create new one')
+    }
+
+    // Only write if routes changed
+    if (currentHash === previousHash) {
+      this.#logger?.info('[Girouette] ✓ Routes unchanged, skipping file write (HMR preserved)')
+      return
+    }
+
+    this.#logger?.info('[Girouette] ✗ Routes changed, regenerating start/routes.ts')
+
+    // Generate the full routes file content
     const fileContent = `/*
 |--------------------------------------------------------------------------
 | Routes file
@@ -89,13 +145,17 @@ import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 import { controllers } from '#generated/controllers'
 
-${this.#routeLines.join('\n')}
+${routeContent}
 `
 
-    // Write the file
-    await writeFile(routesFilePath, fileContent, 'utf-8')
+    // Write the file and cache
+    this.#logger?.debug(`[Girouette] Writing cache to: ${cacheFilePath}`)
+    await Promise.all([
+      writeFile(routesFilePath, fileContent, 'utf-8'),
+      writeFile(cacheFilePath, currentHash, 'utf-8'),
+    ])
 
-    this.#logger?.info(`[Girouette] Generated routes file: ${routesFilePath}`)
+    this.#logger?.info('[Girouette] Routes changed, regenerated start/routes.ts')
   }
 
   /**
