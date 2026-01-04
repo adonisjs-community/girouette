@@ -1,11 +1,11 @@
-![Statements](https://img.shields.io/badge/statements-98.26%25-brightgreen.svg?style=flat)
-![Branches](https://img.shields.io/badge/branches-93.54%25-brightgreen.svg?style=flat)
-![Functions](https://img.shields.io/badge/functions-93.75%25-brightgreen.svg?style=flat)
-![Lines](https://img.shields.io/badge/lines-98.26%25-brightgreen.svg?style=flat)
+![Statements](https://img.shields.io/badge/statements-95.96%25-brightgreen.svg?style=flat)
+![Branches](https://img.shields.io/badge/branches-91.57%25-brightgreen.svg?style=flat)
+![Functions](https://img.shields.io/badge/functions-90.9%25-brightgreen.svg?style=flat)
+![Lines](https://img.shields.io/badge/lines-95.96%25-brightgreen.svg?style=flat)
 
 # Girouette
 
-> Elegant decorator-based routing for AdonisJS v6
+> Elegant decorator-based routing for AdonisJS v7
 
 ## Introduction
 
@@ -26,6 +26,7 @@ To manually generate the configuration file, you can run:
 ```bash
 node ace configure @adonisjs-community/girouette
 ```
+
 By convention, Girouette will recursively scan all files in the `./app` folder that end with `_controller.ts`. You can change this behavior by modifying the `controllersGlob` regex in the configuration file.
 
 ## Basic Routing
@@ -156,10 +157,11 @@ export default class ArticlesController {
   async destroy({ params }: HttpContext) {} // DELETE /articles/:slug
 }
 ```
+
 <br>
 
-
 Or create a nested resource:
+
 ```typescript
 import { Resource } from '@adonisjs-community/girouette'
 
@@ -281,17 +283,93 @@ export default class ProductsController {
   async store() {}
   async update() {}
   async destroy() {}
-  // 'create' and 'edit' are automatically excluded, as they are not part of 
+  // 'create' and 'edit' are automatically excluded, as they are not part of
   // API actions but are only used for web form rendering purposes
 }
 ```
 
+## Tuyau Integration (Type-safe API Client)
+
+Girouette fully supports [Tuyau](https://tuyau.dev), AdonisJS's type-safe API client generator. To enable type generation for your Girouette routes, you need to register the `generateGirouetteRoutes` hook in your `adonisrc.ts` file **before** the Tuyau `generateRegistry` hook:
+
+```typescript
+import { defineConfig } from '@adonisjs/core/app'
+import { generateRegistry } from '@tuyau/core/hooks'
+import { generateGirouetteRoutes } from '@adonisjs-community/girouette/hooks'
+
+export default defineConfig({
+  hooks: {
+    init: [
+      generateGirouetteRoutes(), // Register Girouette routes FIRST
+      generateRegistry(), // Then generate Tuyau types
+    ],
+  },
+  providers: [
+    // ... other providers
+    () => import('@adonisjs-community/girouette/girouette_provider'),
+  ],
+})
+```
+
+This hook scans your controllers during the codegen phase and registers routes with the AdonisJS router, allowing Tuyau to properly infer request and response types from your controller methods and validators.
+
+### How it works
+
+1. **When the dev server starts**:
+   - The dev server child process initializes the AdonisJS application
+   - The `GirouetteProvider` scans your controllers and registers routes with the router
+   - Tuyau's `routesScanning` hook runs and finds all registered routes
+   - Tuyau analyzes the routes and generates TypeScript types
+
+2. **At runtime**:
+   - The same routes registered by the provider handle incoming requests
+
+The `generateGirouetteRoutes()` hook ensures compatibility with Tuyau by documenting the integration pattern. The actual route registration is handled by the `GirouetteProvider` at runtime, which means:
+
+- Your frontend gets proper TypeScript types for API calls
+- Request body types are inferred from your validators (e.g., VineJS schemas)
+- Response types are inferred from your controller method return types
+- No duplicate route registration or complex codegen logic needed
+
+### Example
+
+```typescript
+// app/controllers/posts_controller.ts
+import { Post } from '@adonisjs-community/girouette'
+import { createPostValidator } from '#validators/post'
+
+export default class PostsController {
+  @Post('/posts', 'posts.store')
+  async store({ request }: HttpContext) {
+    const data = await request.validateUsing(createPostValidator)
+    const post = await Post.create(data)
+    return post
+  }
+}
+```
+
+With the hook configured, Tuyau will generate types like:
+
+```typescript
+// .adonisjs/client/registry/schema.d.ts
+'posts.store': {
+  methods: ["POST"]
+  pattern: '/posts'
+  types: {
+    body: ExtractBody<InferInput<typeof createPostValidator>>
+    response: Awaited<ReturnType<PostsController['store']>>
+  }
+}
+```
+
 ## Note regarding [TC39 experimental decorators](https://github.com/microsoft/TypeScript/issues/57533#issuecomment-2762543664)
-We're well aware about the uncertain future of **TC39 decorators**, which are still in experimental phase, but we are closely following the AdonisJS team's position on this topic. As of now, AdonisJS v6 is still using the experimental decorators proposal, and Girouette is built to work seamlessly with it. 
+
+We're well aware about the uncertain future of **TC39 decorators**, which are still in experimental phase, but we are closely following the AdonisJS team's position on this topic. As of now, AdonisJS v6 is still using the experimental decorators proposal, and Girouette is built to work seamlessly with it.
 
 ## License
 
 Girouette is open-sourced software licensed under the [MIT license](./LICENSE.md).
 
 ## Credits
+
 All credit goes to [Alexis Bouchez](https://github.com/alexisbcz), who initiated this package. Thanks to him! It is now maintained by the AdonisJS community.

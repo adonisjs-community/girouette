@@ -87,9 +87,20 @@ test.group('GirouetteProvider - Resource Routes', () => {
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
     assert.isTrue(routes.every((r) => r.methods.every((m) => HTTP_METHODS.includes(m))))
 
-    const controllerMethods: string[] = routes.map(
-      (r) => ((r.handler as any).reference as string).split('.').pop() as string
-    )
+    const controllerMethods: string[] = routes.map((r) => {
+      const handler = r.handler as any
+      // Handler can be: array [() => import(...), 'methodName'], lazy string 'path.method', or object with method property
+      if (Array.isArray(handler)) {
+        return handler[1]
+      } else if (typeof handler === 'string') {
+        return handler.split('.').pop()
+      } else if (handler.method) {
+        return handler.method
+      } else if (handler.reference && typeof handler.reference === 'string') {
+        return handler.reference.split('.').pop()
+      }
+      return ''
+    })
     assert.isTrue(controllerMethods.every((m) => RESOURCE_METHODS.includes(m.toLowerCase())))
   })
 
@@ -115,9 +126,20 @@ test.group('GirouetteProvider - Resource Routes', () => {
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
     assert.isTrue(routes.every((r) => r.methods.every((m) => HTTP_METHODS.includes(m))))
 
-    const controllerMethods: string[] = routes.map(
-      (r) => ((r.handler as any).reference as string).split('.').pop() as string
-    )
+    const controllerMethods: string[] = routes.map((r) => {
+      const handler = r.handler as any
+      // Handler can be: array [() => import(...), 'methodName'], lazy string 'path.method', or object with method property
+      if (Array.isArray(handler)) {
+        return handler[1]
+      } else if (typeof handler === 'string') {
+        return handler.split('.').pop()
+      } else if (handler.method) {
+        return handler.method
+      } else if (handler.reference && typeof handler.reference === 'string') {
+        return handler.reference.split('.').pop()
+      }
+      return ''
+    })
     assert.isTrue(controllerMethods.every((m) => RESOURCE_METHODS.includes(m.toLowerCase())))
   })
 })
