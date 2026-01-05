@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import { join } from 'node:path'
 import { cwd } from 'node:process'
 import { TestUtilsFactory } from '@adonisjs/core/factories'
-import { HTTP_METHODS, RESOURCE_METHODS, extractRoutesList } from './utils.js'
+import { HTTP_METHODS, RESOURCE_METHODS, extractRoutesList } from './test_utils.js'
 import type { ApplicationService, HttpRouterService } from '@adonisjs/core/types'
 
 const BASE_PATH = join(cwd(), 'test/controllers')
