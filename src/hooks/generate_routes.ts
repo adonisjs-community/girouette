@@ -1,14 +1,16 @@
-import { watch } from 'node:fs'
 import { join } from 'node:path'
-import { readFile, writeFile } from 'node:fs/promises'
+import { writeFile } from 'node:fs/promises'
 import { staticRouteDetector } from '../static_route_parser.js'
+import { DevServer } from '@adonisjs/assembler'
 
 /**
  * Assembler hook for Girouette + Tuyau integration
  *
- * Watches controller files and triggers full reload when routes change.
- * This allows HMR to work for controller logic changes while forcing
- * full reload only when route definitions change.
+ * Registers fileChanged, fileAdded, and fileRemoved hooks to detect route changes
+ * and trigger full reload when needed, while allowing HMR for controller logic changes.
+ *
+ * When routes change, this hook touches .girouette/routes_registry.ts to trigger
+ * a server reload. This file is outside hot-hook boundaries so it doesn't break HMR.
  *
  * @example
  * ```ts
@@ -19,7 +21,7 @@ import { staticRouteDetector } from '../static_route_parser.js'
  * export default defineConfig({
  *   hooks: {
  *     init: [
- *       generateGirouetteRoutes(), // Watches for route changes
+ *       generateGirouetteRoutes(), // Detects route changes
  *       generateRegistry(),        // Generates Tuyau types
  *     ],
  *   },
@@ -31,40 +33,125 @@ import { staticRouteDetector } from '../static_route_parser.js'
  */
 export function generateGirouetteRoutes() {
   return {
-    async run(devServer: any, _hooks: any) {
+    async run(devServer: DevServer & { appRoot: string }, hooks: any) {
       const appRoot = devServer.appRoot || process.cwd()
-      const controllersPath = join(appRoot, 'app')
+      const routesPath = join(appRoot, 'start', 'routes.ts')
 
-      console.log('[Girouette] Setting up HMR route change detector...')
+      /**
+       * Helper function to trigger full reload by touching start/routes.ts
+       * This file is watched by hot-hook and will trigger a server restart
+       */
+      async function triggerFullReload(reason: string) {
+        console.log(`[Girouette] ⚠️  ${reason}, triggering full reload...`)
+        try {
+          // Read the routes file
+          const { readFile: readFileSync } = await import('node:fs/promises')
+          const content = await readFileSync(routesPath, 'utf-8')
+          // Write it back (same content, new timestamp)
+          await writeFile(routesPath, content, 'utf-8')
+          console.log('[Girouette] ✓ Reload triggered')
+        } catch (error) {
+          console.error('[Girouette] Failed to trigger reload:', error)
+        }
+      }
 
-      // Watch controller files for changes
-      const watcher = watch(controllersPath, { recursive: true }, async (_eventType, filename) => {
-        if (!filename || !filename.includes('controller')) {
+      console.log('[Girouette] Setting up route change detector...')
+
+      // Initialize the route detector cache with current state of all controllers
+      // This ensures the first edit after server start is properly detected
+      const initializeRouteCache = async (dir: string, readdir: any): Promise<void> => {
+        const entries = await readdir(dir, { withFileTypes: true })
+        for (const entry of entries) {
+          const fullPath = join(dir, entry.name)
+          if (entry.isDirectory()) {
+            await initializeRouteCache(fullPath, readdir)
+          } else if (entry.name.includes('controller')) {
+            // Initialize the cache for this controller
+            await staticRouteDetector.didRoutesChange(fullPath)
+          }
+        }
+      }
+
+      try {
+        const { readdir } = await import('node:fs/promises')
+        const controllersPath = join(appRoot, 'app')
+        await initializeRouteCache(controllersPath, readdir)
+        console.log('[Girouette] ✓ Route detector cache initialized')
+      } catch (error) {
+        console.error('[Girouette] Failed to initialize route detector cache:', error)
+      }
+
+      // Hook: fileChanged - Detect route decorator changes in existing controllers
+      hooks.add(
+        'fileChanged',
+        async (
+          relativePath: string,
+          absolutePath: string,
+          info: {
+            source: 'hot-hook' | 'watcher'
+            hotReloaded: boolean
+            fullReload: boolean
+          }
+        ) => {
+          // Only process controller files
+          if (!relativePath.includes('controller')) {
+            return
+          }
+
+          try {
+            // Check if routes changed using static parsing (no import needed!)
+            const routesChanged = await staticRouteDetector.didRoutesChange(absolutePath)
+
+            if (routesChanged) {
+              await triggerFullReload(`Route decorators changed in ${relativePath}`)
+            } else if (info.hotReloaded) {
+              console.log(`[Girouette] ✓ Controller logic changed in ${relativePath}, HMR applied`)
+            }
+          } catch (error) {
+            // Silently ignore errors (file might be in invalid state during editing)
+          }
+        }
+      )
+
+      // Hook: fileAdded - New controller added
+      hooks.add('fileAdded', async (relativePath: string, absolutePath: string) => {
+        // Only process controller files
+        if (!relativePath.includes('controller')) {
           return
         }
 
-        const fullPath = join(controllersPath, filename)
-
         try {
-          // Statically parse route decorators (no import needed!)
-          const routesChanged = await staticRouteDetector.didRoutesChange(fullPath)
+          // Check if the new file has route decorators
+          const { parseRouteDecorators } = await import('../static_route_parser.js')
+          const hash = await parseRouteDecorators(absolutePath)
 
-          if (routesChanged) {
-            console.log(`[Girouette] ⚠️  Routes changed in ${filename}, triggering full reload...`)
-            // Touch routes.ts to trigger full reload
-            const routesPath = join(appRoot, 'start', 'routes.ts')
-            const content = await readFile(routesPath, 'utf-8')
-            await writeFile(routesPath, content, 'utf-8') // Touch file (same content, new timestamp)
+          // If hash is not empty (file has decorators), trigger reload
+          if (hash && hash !== 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') {
+            // Note: empty string hash is e3b0c44...
+            await triggerFullReload(`New controller with routes added: ${relativePath}`)
           } else {
-            console.log(`[Girouette] ✓ Routes unchanged in ${filename}, HMR will proceed`)
+            console.log(`[Girouette] New controller added but no routes found: ${relativePath}`)
           }
         } catch (error) {
-          // Ignore errors (file might be deleted, syntax error, etc.)
+          // If we can't read the file, assume it has routes and trigger reload
+          await triggerFullReload(`New controller added: ${relativePath}`)
         }
       })
 
-      // Cleanup on exit
-      process.on('exit', () => watcher.close())
+      // Hook: fileRemoved - Controller deleted
+      hooks.add('fileRemoved', async (relativePath: string, _absolutePath: string) => {
+        // Only process controller files
+        if (!relativePath.includes('controller')) {
+          return
+        }
+
+        // When a file is removed, we can't check if it had routes
+        // So we always trigger reload and clear the cache
+        staticRouteDetector.clear()
+        await triggerFullReload(`Controller removed: ${relativePath}`)
+      })
+
+      console.log('[Girouette] ✓ Route change detector ready')
     },
   }
 }

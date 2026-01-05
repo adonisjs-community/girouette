@@ -19,6 +19,7 @@ export async function configure(command: ConfigureCommand) {
   const codemods = await command.createCodemods()
   await codemods.updateRcFile((rcFile) => {
     rcFile.addProvider('@adonisjs-community/girouette/girouette_provider')
+    rcFile.addAssemblerHook('init', '@adonisjs-community/girouette/hooks/generate_routes')
   })
 
   await codemods.makeUsingStub(stubsRoot, 'config/girouette.stub', {})

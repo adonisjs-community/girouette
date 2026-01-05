@@ -48,6 +48,13 @@ export class StaticRouteDetector {
     const currentHash = await parseRouteDecorators(filePath)
     const previousHash = this.routeHashes.get(filePath)
 
+    console.log('[StaticRouteDetector DEBUG]', {
+      filePath,
+      currentHash: currentHash.substring(0, 8),
+      previousHash: previousHash ? previousHash.substring(0, 8) : 'none',
+      changed: previousHash ? currentHash !== previousHash : false,
+    })
+
     // Update cache
     this.routeHashes.set(filePath, currentHash)
 
