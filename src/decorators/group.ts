@@ -1,5 +1,4 @@
-import { REFLECT_GROUP_KEY } from '../constants.js'
-import { REFLECT_GROUP_DOMAIN_KEY } from '../constants.js'
+import { GroupMetadata, GroupMetadataStorage, RouteMetadataStorage } from '../metadata/main.ts'
 
 /**
  * The Group decorator allows you to configure route groups with names and prefixes.
@@ -21,9 +20,9 @@ import { REFLECT_GROUP_DOMAIN_KEY } from '../constants.js'
  * export default class AdminController {}
  * ```
  */
-export const Group = (options: { name?: string; prefix?: string }) => {
-  return (target: any) => {
-    Reflect.defineMetadata(REFLECT_GROUP_KEY, options, target)
+export function Group(options: GroupMetadata): ClassDecorator {
+  return function (target) {
+    GroupMetadataStorage.defineMetadata(target, options)
   }
 }
 
@@ -45,7 +44,11 @@ export const Group = (options: { name?: string; prefix?: string }) => {
  * ```
  */
 export const GroupDomain = (domain: string) => {
-  return (target: any) => {
-    Reflect.defineMetadata(REFLECT_GROUP_DOMAIN_KEY, domain, target)
+  return (target: Function, propertyKey?: string | symbol) => {
+    if (propertyKey) {
+      RouteMetadataStorage.mergeMetadata(target.prototype, { domain }, propertyKey)
+    } else {
+      GroupMetadataStorage.mergeMetadata(target, { domain })
+    }
   }
 }

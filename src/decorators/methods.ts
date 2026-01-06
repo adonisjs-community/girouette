@@ -1,4 +1,4 @@
-import { REFLECT_ROUTES_KEY } from '../constants.js'
+import { RouteMetadataStorage } from '../metadata/main.ts'
 
 /**
  * Creates a method decorator for HTTP routes in AdonisJS v6
@@ -6,17 +6,16 @@ import { REFLECT_ROUTES_KEY } from '../constants.js'
  * @returns A decorator function
  */
 const MethodDecorator = (method: string) => (pattern: string, name?: string) => {
-  return (target: any, key: string, descriptor: PropertyDescriptor) => {
-    const routes = Reflect.getMetadata(REFLECT_ROUTES_KEY, target.constructor) || {}
-    const newRoute = { method, pattern, name }
-
-    if (routes[key]) {
-      routes[key] = { ...newRoute, ...routes[key] }
-    } else {
-      routes[key] = { method, pattern, name }
-    }
-
-    Reflect.defineMetadata(REFLECT_ROUTES_KEY, routes, target.constructor)
+  return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+    RouteMetadataStorage.defineMetadata(
+      target,
+      {
+        name: name ?? propertyKey,
+        methods: [method],
+        pattern,
+      },
+      propertyKey
+    )
 
     return descriptor
   }

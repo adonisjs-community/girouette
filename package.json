@@ -27,7 +27,8 @@
     "./hooks": {
       "import": "./build/src/hooks/generate_routes.js",
       "types": "./build/src/hooks/generate_routes.d.ts"
-    }
+    },
+    "./services/main": "./build/services/main.js"
   },
   "main": "./build/index.js",
   "types": "./build/index.d.ts",
@@ -42,6 +43,7 @@
     "test": "c8 --include=src --include=providers --reporter=json-summary npm run quick:test && istanbul-badges-readme",
     "prebuild": "npm run lint && npm run clean",
     "build": "pnpm clean && tsc && pnpm copy:templates",
+    "dev": "tsc --watch",
     "release": "release-it",
     "version": "npm run build",
     "prepublishOnly": "npm run build"
@@ -68,6 +70,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "deepmerge": "^4.3.1",
     "reflect-metadata": "^0.2.2"
   },
   "peerDependencies": {
