@@ -18,11 +18,12 @@ export interface GirouetteConfig {
  * Represents a route configuration within the Girouette system
  */
 export type GirouetteRoute = {
-  method: string
+  name?: string
+  methods: string[]
   pattern: string
-  name: string
   where: { key: string; matcher: RouteMatcher | string | RegExp }[]
-  middleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>[]
+  middleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>
+  propertyKey: string
 }
 
 /**

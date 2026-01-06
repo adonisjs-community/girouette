@@ -28,6 +28,7 @@ import {
   OneOrMore,
 } from '../src/types.js'
 import { cwd } from 'node:process'
+import { Girouette } from '../src/girouette.ts'
 
 /**
  * The GirouetteProvider is responsible for generating a routes.ts file from decorated controllers.
@@ -45,8 +46,18 @@ export default class GirouetteProvider {
     this.#controllersPath = path
   }
 
+  register() {
+    this.app.container.singleton('girouette', async (resolver) => {
+      const router = await resolver.make('router')
+      const logger = await resolver.make('logger')
+      return new Girouette(router, logger.child({ service: 'girouette' }))
+    })
+  }
+
   async boot() {
     // Provider is booted
+    const girouette = await this.app.container.make('girouette')
+    await girouette.boot()
   }
 
   /**
@@ -207,18 +218,18 @@ export default class GirouetteProvider {
     )
 
     // Step 3: Generate start/routes.ts file
-    await this.#generateRoutesFile()
+    // await this.#generateRoutesFile()
 
     // Step 4: Write decorator cache after successful scan
-    console.log(
-      `[Girouette DEBUG] decoratorHash value: ${decoratorHash ? decoratorHash.substring(0, 8) + '...' : 'EMPTY/FALSY'}`
-    )
-    if (decoratorHash) {
-      console.log('[Girouette DEBUG] Calling writeDecoratorCache...')
-      await this.#writeDecoratorCache(decoratorHash)
-    } else {
-      console.log('[Girouette DEBUG] NOT calling writeDecoratorCache - hash is empty!')
-    }
+    // console.log(
+    //   `[Girouette DEBUG] decoratorHash value: ${decoratorHash ? decoratorHash.substring(0, 8) + '...' : 'EMPTY/FALSY'}`
+    // )
+    // if (decoratorHash) {
+    //   console.log('[Girouette DEBUG] Calling writeDecoratorCache...')
+    //   await this.#writeDecoratorCache(decoratorHash)
+    // } else {
+    //   console.log('[Girouette DEBUG] NOT calling writeDecoratorCache - hash is empty!')
+    // }
   }
 
   /**
@@ -604,5 +615,11 @@ ${routeContent}
 
   #getControllerMetadata<T>(key: string, controllerClass: FunctionConstructor): T | undefined {
     return Reflect.getMetadata(key, controllerClass)
+  }
+}
+
+declare module '@adonisjs/core/types' {
+  export interface ContainerBindings {
+    girouette: Girouette
   }
 }
