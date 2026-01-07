@@ -38,9 +38,7 @@ export class Girouette {
     })
   }
 
-  async boot() {
-    console.log('boot', this.#controllers)
-  }
+  async boot() {}
 
   /**
    * Check all controllers for route changes and trigger a full reload if needed.

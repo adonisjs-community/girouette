@@ -2,7 +2,7 @@ import { indexPages } from '@adonisjs/inertia'
 import { indexEntities } from '@adonisjs/core'
 import { defineConfig } from '@adonisjs/core/app'
 import { generateRegistry } from '@tuyau/core/hooks'
-import { indexControllers } from '../build/index.js'
+import { indexControllers } from '@adonisjs-community/girouette'
 
 export default defineConfig({
   /*
@@ -67,8 +67,8 @@ export default defineConfig({
   */
   preloads: [
     () => import('#start/routes'),
-    () => import('#start/routes.girouette'),
     () => import('#start/kernel'),
+    () => import('#start/routes.girouette'),
   ],
 
   /*
@@ -125,10 +125,20 @@ export default defineConfig({
     init: [
       indexEntities({
         transformers: { enabled: true, withSharedProps: true },
+        controllers: {
+          enabled: true,
+          source: './app',
+          glob: ['**/*_controller.ts'],
+          importAlias: '#app',
+        },
       }),
-      indexControllers(),
       indexPages({ framework: 'react' }),
       generateRegistry(),
+      indexControllers({
+        source: './app',
+        glob: ['**/*_controller.ts'],
+        importAlias: '#app',
+      }),
     ],
     buildStarting: [() => import('@adonisjs/vite/build_hook')],
   },

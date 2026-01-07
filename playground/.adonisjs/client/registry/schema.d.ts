@@ -13,7 +13,7 @@ export interface Registry {
       paramsTuple: []
       params: {}
       query: ExtractQueryForGet<InferInput<(typeof import('#validators/user').signupValidator)>>
-      response: Awaited<ReturnType<import('#controllers/new_account_controller').default['store']>>
+      response: Awaited<ReturnType<import('#app/controllers/new_account_controller').default['store']>>
     }
   }
   'session.index': {
@@ -24,7 +24,7 @@ export interface Registry {
       paramsTuple: []
       params: {}
       query: {}
-      response: Awaited<ReturnType<import('#controllers/session_controller').default['index']>>
+      response: Awaited<ReturnType<import('#app/controllers/session_controller').default['index']>>
     }
   }
   'session.create': {
@@ -35,7 +35,7 @@ export interface Registry {
       paramsTuple: []
       params: {}
       query: {}
-      response: Awaited<ReturnType<import('#controllers/session_controller').default['create']>>
+      response: Awaited<ReturnType<import('#app/controllers/session_controller').default['create']>>
     }
   }
   'session.destroy': {
@@ -46,7 +46,7 @@ export interface Registry {
       paramsTuple: [string]
       params: { id: string }
       query: {}
-      response: Awaited<ReturnType<import('#controllers/session_controller').default['destroy']>>
+      response: Awaited<ReturnType<import('#app/controllers/session_controller').default['destroy']>>
     }
   }
   'test.home': {
@@ -57,7 +57,18 @@ export interface Registry {
       paramsTuple: []
       params: {}
       query: {}
-      response: Awaited<ReturnType<import('#controllers/test_controller').default['home']>>
+      response: Awaited<ReturnType<import('#app/controllers/test_controller').default['home']>>
+    }
+  }
+  'users.list': {
+    methods: ["GET"]
+    pattern: '/users'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: Awaited<ReturnType<import('#app/features/users/controllers/users_controller').default['list']>>
     }
   }
 }

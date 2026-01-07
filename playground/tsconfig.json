@@ -5,6 +5,5 @@
     "jsx": "react",
     "outDir": "./build"
   },
-  "include": ["./.adonisjs/server/**/*", "./.adonisjs/client/**/*"],
   "references": [{ "path": "./inertia/tsconfig.json" }]
 }
