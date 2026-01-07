@@ -1,13 +1,18 @@
 import { Logger } from '@adonisjs/core/logger'
 import { HttpRouterService } from '@adonisjs/core/types'
-import { getControllerMetadata, GroupMetadata, RouteMetadata } from './metadata/main.ts'
+import {
+  getControllerMetadata,
+  GroupMetadata,
+  ResourceMetadata,
+  RouteMetadata,
+} from './metadata/main.ts'
 import { LazyImport } from '@adonisjs/core/types/common'
-import { deepEqual } from './utils.ts'
-import stringHelpers from '@adonisjs/core/helpers/string'
+import { deepEqual, prettifyGroupName } from './utils.ts'
 
 type ControllerCache = {
   group: GroupMetadata
   routes: Record<string, RouteMetadata>
+  resource?: ResourceMetadata
 }
 
 export class RouterLoader {
@@ -23,7 +28,7 @@ export class RouterLoader {
   registerGroup(name: string, metadata: GroupMetadata, callback: () => void) {
     const group = this.#router.group(() => callback())
 
-    group.as(metadata.name ?? stringHelpers.create(name).removeSuffix('Controller').toString())
+    group.as(metadata.name ?? prettifyGroupName(name))
 
     if (metadata.prefix) {
       group.prefix(metadata.prefix)
@@ -31,6 +36,10 @@ export class RouterLoader {
 
     if (metadata.domain) {
       group.domain(metadata.domain)
+    }
+
+    if (metadata.middlewares) {
+      group.use(metadata.middlewares)
     }
   }
 
@@ -60,14 +69,56 @@ export class RouterLoader {
     ] as any)
 
     route.as(metadata.name ?? propertyKey)
+
+    if (metadata.middlewares) {
+      for (const middleware of metadata.middlewares) {
+        route.use(middleware)
+      }
+    }
+
+    if (metadata.where) {
+      for (const { key, matcher } of metadata.where) {
+        route.where(key, matcher)
+      }
+    }
   }
 
-  async registerController(
+  registerResource(controllerImport: LazyImport<Function>, metadata: ResourceMetadata) {
+    this.#logger.debug({ metadata }, 'Registering resource')
+
+    const resource = this.#router.resource(metadata.name, controllerImport as any)
+
+    if (metadata.params) {
+      resource.params(metadata.params)
+    }
+
+    if (metadata.apiOnly) {
+      resource.apiOnly()
+    } else if (metadata.only) {
+      resource.only(metadata.only)
+    } else if (metadata.except) {
+      resource.except(metadata.except)
+    }
+
+    if (metadata.middlewares) {
+      for (const { actions, middlewares } of metadata.middlewares) {
+        resource.use(actions, middlewares)
+      }
+    }
+  }
+
+  registerController(
     controllerImport: LazyImport<Function>,
     controllerName: string,
     group: GroupMetadata,
-    routes: Record<string, RouteMetadata>
+    routes: Record<string, RouteMetadata>,
+    resource?: ResourceMetadata
   ) {
+    if (resource) {
+      this.registerResource(controllerImport, resource)
+      return
+    }
+
     this.registerGroup(controllerName, group ?? {}, () => {
       for (const [propertyKey, routeMetadata] of Object.entries(routes)) {
         this.registerRoute(controllerImport, controllerName, routeMetadata, propertyKey)
@@ -75,13 +126,28 @@ export class RouterLoader {
     })
   }
 
-  async reload(controllerImport: LazyImport<Function>) {
-    const cache = this.#cache.get(controllerImport.toString())
-    if (!cache) return true
+  /**
+   * Check if a controller's routes have changed and need a full server reload.
+   *
+   * @returns `true` if routes changed and a full reload is needed, `false` otherwise
+   */
+  async reload(controllerImport: LazyImport<Function>): Promise<boolean> {
+    const cacheKey = controllerImport.toString()
+    const cache = this.#cache.get(cacheKey)
 
     const { default: controllerClass } = await controllerImport()
     const metadata = getControllerMetadata(controllerClass)
-    if (deepEqual(cache, metadata)) return false
+
+    if (!cache) {
+      this.#cache.set(cacheKey, metadata)
+      return true
+    }
+
+    if (deepEqual(cache, metadata)) {
+      return false
+    }
+
+    this.#cache.set(cacheKey, metadata)
     return true
   }
 
@@ -94,6 +160,12 @@ export class RouterLoader {
 
     this.#cache.set(controllerImport.toString(), metadata)
 
-    this.registerController(controllerImport, controllerClass.name, metadata.group, metadata.routes)
+    this.registerController(
+      controllerImport,
+      controllerClass.name,
+      metadata.group,
+      metadata.routes,
+      metadata.resource
+    )
   }
 }

@@ -1,6 +1,6 @@
 import { MiddlewareFn, ParsedNamedMiddleware, ResourceActionNames } from '@adonisjs/core/types/http'
-import { OneOrMore } from '../types.js'
-import { REFLECT_RESOURCE_MIDDLEWARE_KEY } from '../constants.js'
+import { Constructor, OneOrMore } from '../types.ts'
+import { ResourceMetadataStorage } from '../metadata/main.ts'
 
 /**
  * The ResourceMiddleware decorator applies middleware to specific resource actions.
@@ -11,14 +11,14 @@ import { REFLECT_RESOURCE_MIDDLEWARE_KEY } from '../constants.js'
  * @example
  * ```ts
  * // Protect all resource actions
- * @Resource('/users')
+ * @Resource('users')
  * @ResourceMiddleware('*', [middleware.auth()])
  * export default class UsersController {
  *   // All methods protected by auth middleware
  * }
  *
  * // Protect specific actions
- * @Resource('/posts')
+ * @Resource('posts')
  * @ResourceMiddleware(['store', 'update', 'destroy'], [middleware.auth()])
  * export default class PostsController {
  *   // Only write operations are protected
@@ -29,9 +29,12 @@ export const ResourceMiddleware = (
   actions: ResourceActionNames | '*' | ResourceActionNames[],
   middleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>
 ) => {
-  return (target: any) => {
-    const resourceMiddleware = Reflect.getMetadata(REFLECT_RESOURCE_MIDDLEWARE_KEY, target) || []
-    resourceMiddleware.push({ actions, middleware })
-    Reflect.defineMetadata(REFLECT_RESOURCE_MIDDLEWARE_KEY, resourceMiddleware, target)
+  return <T extends Constructor>(target: T) => {
+    const existing = ResourceMetadataStorage.getMetadata(target)
+    const existingMiddleware = existing?.middlewares ?? []
+
+    ResourceMetadataStorage.mergeMetadata(target, {
+      middlewares: [...existingMiddleware, { actions, middlewares: middleware }],
+    })
   }
 }

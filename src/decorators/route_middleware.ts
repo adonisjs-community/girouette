@@ -1,6 +1,6 @@
 import { MiddlewareFn, ParsedNamedMiddleware } from '@adonisjs/core/types/http'
-import { REFLECT_ROUTES_KEY } from '../constants.js'
-import { OneOrMore } from '../types.js'
+import { RouteMetadataStorage } from '../metadata/main.ts'
+import { OneOrMore } from '../types.ts'
 
 /**
  * The RouteMiddleware decorator applies middleware to a specific route.
@@ -17,15 +17,14 @@ import { OneOrMore } from '../types.js'
  * ```
  */
 export const RouteMiddleware = (middleware: OneOrMore<MiddlewareFn | ParsedNamedMiddleware>) => {
-  return (target: any, key: string) => {
-    const routes = Reflect.getMetadata(REFLECT_ROUTES_KEY, target.constructor) || {}
-    if (!routes[key]) {
-      routes[key] = {}
-    }
-    if (!routes[key].middleware) {
-      routes[key].middleware = []
-    }
-    routes[key].middleware.push(middleware)
-    Reflect.defineMetadata(REFLECT_ROUTES_KEY, routes, target.constructor)
+  return (target: any, propertyKey: string) => {
+    const existing = RouteMetadataStorage.getMetadata(target, propertyKey)
+    const existingMiddleware = existing?.middlewares ?? []
+
+    RouteMetadataStorage.mergeMetadata(
+      target,
+      { middlewares: [...existingMiddleware, middleware] },
+      propertyKey
+    )
   }
 }

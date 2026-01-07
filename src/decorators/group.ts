@@ -22,7 +22,7 @@ import { GroupMetadata, GroupMetadataStorage, RouteMetadataStorage } from '../me
  */
 export function Group(options: GroupMetadata): ClassDecorator {
   return function (target) {
-    GroupMetadataStorage.defineMetadata(target, options)
+    GroupMetadataStorage.mergeMetadata(target, options)
   }
 }
 

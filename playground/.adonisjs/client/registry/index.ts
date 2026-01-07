@@ -6,17 +6,35 @@ import type { ApiDefinition } from './tree.d.ts'
 const placeholder: any = {}
 
 const routes = {
-  'Session.test': {
+  'NewAccount.store': {
     methods: ["GET"],
-    pattern: '/test',
-    tokens: [{"old":"/test","type":0,"val":"test","end":""}],
-    types: placeholder as Registry['Session.test']['types'],
+    pattern: '/welcome',
+    tokens: [{"old":"/welcome","type":0,"val":"welcome","end":""}],
+    types: placeholder as Registry['NewAccount.store']['types'],
   },
-  'Test.home': {
+  'session.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/session',
+    tokens: [{"old":"/session","type":0,"val":"session","end":""}],
+    types: placeholder as Registry['session.index']['types'],
+  },
+  'session.create': {
+    methods: ["GET","HEAD"],
+    pattern: '/session/create',
+    tokens: [{"old":"/session/create","type":0,"val":"session","end":""},{"old":"/session/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['session.create']['types'],
+  },
+  'session.destroy': {
+    methods: ["DELETE"],
+    pattern: '/session/:id',
+    tokens: [{"old":"/session/:id","type":0,"val":"session","end":""},{"old":"/session/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['session.destroy']['types'],
+  },
+  'test.home': {
     methods: ["GET"],
     pattern: '/',
     tokens: [{"old":"/","type":0,"val":"/","end":""}],
-    types: placeholder as Registry['Test.home']['types'],
+    types: placeholder as Registry['test.home']['types'],
   },
 } as const satisfies Record<string, AdonisEndpoint>
 

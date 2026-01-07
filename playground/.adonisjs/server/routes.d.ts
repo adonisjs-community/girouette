@@ -4,12 +4,24 @@ type ParamValue = string | number | bigint | boolean
 
 export type ScannedRoutes = {
   ALL: {
-    'Session.test': { paramsTuple?: []; params?: {} }
-    'Test.home': { paramsTuple?: []; params?: {} }
+    'NewAccount.store': { paramsTuple?: []; params?: {} }
+    'session.index': { paramsTuple?: []; params?: {} }
+    'session.create': { paramsTuple?: []; params?: {} }
+    'session.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'test.home': { paramsTuple?: []; params?: {} }
   }
   GET: {
-    'Session.test': { paramsTuple?: []; params?: {} }
-    'Test.home': { paramsTuple?: []; params?: {} }
+    'NewAccount.store': { paramsTuple?: []; params?: {} }
+    'session.index': { paramsTuple?: []; params?: {} }
+    'session.create': { paramsTuple?: []; params?: {} }
+    'test.home': { paramsTuple?: []; params?: {} }
+  }
+  HEAD: {
+    'session.index': { paramsTuple?: []; params?: {} }
+    'session.create': { paramsTuple?: []; params?: {} }
+  }
+  DELETE: {
+    'session.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

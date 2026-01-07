@@ -1,4 +1,5 @@
-import { REFLECT_RESOURCE_API_ONLY_KEY } from '../constants.js'
+import { ResourceMetadataStorage } from '../metadata/main.ts'
+import { Constructor } from '../types.ts'
 
 /**
  * The `@ApiOnly` decorator removes the routes which aren't needed for an API resource.
@@ -6,20 +7,20 @@ import { REFLECT_RESOURCE_API_ONLY_KEY } from '../constants.js'
  *
  * @example
  * ```ts
- * @Resource('/posts', 'blog.posts')
+ * @Resource('posts')
  * @ApiOnly()
  * export default class PostsController {
  *   // Generates routes:
- *   // GET    /posts          (blog.posts.index)
- *   // POST   /posts          (blog.posts.store)
- *   // GET    /posts/:id      (blog.posts.show)
- *   // PUT    /posts/:id      (blog.posts.update)
- *   // DELETE /posts/:id      (blog.posts.destroy)
+ *   // GET    /posts          (posts.index)
+ *   // POST   /posts          (posts.store)
+ *   // GET    /posts/:id      (posts.show)
+ *   // PUT    /posts/:id      (posts.update)
+ *   // DELETE /posts/:id      (posts.destroy)
  * }
  * ```
  */
 export const ApiOnly = () => {
-  return (target: any) => {
-    Reflect.defineMetadata(REFLECT_RESOURCE_API_ONLY_KEY, true, target)
+  return <T extends Constructor>(target: T) => {
+    ResourceMetadataStorage.mergeMetadata(target, { apiOnly: true })
   }
 }

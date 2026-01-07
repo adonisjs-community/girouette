@@ -21,6 +21,5 @@ export * from './src/decorators/except.js'
 export * from './src/decorators/api_only.js'
 
 export { Group, GroupDomain } from './src/decorators/group.js'
-export { generateGirouetteRoutes } from './src/hooks/generate_routes.js'
 
 export { indexControllers } from './src/hooks/index_controllers.js'

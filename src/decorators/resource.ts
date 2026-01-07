@@ -1,9 +1,10 @@
-import { REFLECT_RESOURCE_NAME_KEY, REFLECT_RESOURCE_PARAMS_KEY } from '../constants.js'
+import { ResourceMetadataStorage } from '../metadata/main.ts'
+import { Constructor } from '../types.ts'
 
 type ResourceOptions =
   | {
       name: string
-      params?: { [resource: string]: string }
+      params?: Record<string, string>
     }
   | string
 
@@ -32,7 +33,7 @@ type ResourceOptions =
  * @example
  * ```ts
  * // Nested resource
- * @Resource({name: 'posts.comments', params: { posts: 'post', comments: 'comment' }})
+ * @Resource({ name: 'posts.comments', params: { posts: 'post', comments: 'comment' } })
  * export default class PostsCommentsController {
  *   // Generates routes:
  *   // GET    /posts/:post/comments                (posts.comments.index)
@@ -47,7 +48,7 @@ type ResourceOptions =
  * @example
  * ```ts
  * // String shorthand for simple resources
- * @Resource('/posts')
+ * @Resource('posts')
  * export default class PostsController {
  *   // Generates routes:
  *   // GET    /posts               (posts.index)
@@ -61,15 +62,12 @@ type ResourceOptions =
  * ```
  */
 export const Resource = (options: ResourceOptions) => {
-  return (target: any) => {
-    if (typeof options === 'string') {
-      options = { name: options }
-    }
+  return <T extends Constructor>(target: T) => {
+    const normalizedOptions = typeof options === 'string' ? { name: options } : options
 
-    Reflect.defineMetadata(REFLECT_RESOURCE_NAME_KEY, options.name, target)
-
-    if (options.params) {
-      Reflect.defineMetadata(REFLECT_RESOURCE_PARAMS_KEY, options.params, target)
-    }
+    ResourceMetadataStorage.mergeMetadata(target, {
+      name: normalizedOptions.name,
+      params: normalizedOptions.params,
+    })
   }
 }
