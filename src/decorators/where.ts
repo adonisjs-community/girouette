@@ -1,5 +1,5 @@
 import { RouteMatcher } from '@adonisjs/core/types/http'
-import { REFLECT_ROUTES_KEY } from '../constants.js'
+import { RouteMetadataStorage } from '../metadata/main.ts'
 
 /**
  * Decorator for defining route constraints in AdonisJS v6
@@ -36,14 +36,13 @@ import { REFLECT_ROUTES_KEY } from '../constants.js'
  */
 export const Where = (key: string, matcher: RouteMatcher | string | RegExp) => {
   return (target: any, propertyKey: string) => {
-    const routes = Reflect.getMetadata(REFLECT_ROUTES_KEY, target.constructor) || {}
-    if (!routes[propertyKey]) {
-      routes[propertyKey] = {}
-    }
-    if (!routes[propertyKey].where) {
-      routes[propertyKey].where = []
-    }
-    routes[propertyKey].where.push({ key, matcher })
-    Reflect.defineMetadata(REFLECT_ROUTES_KEY, routes, target.constructor)
+    const existing = RouteMetadataStorage.getMetadata(target, propertyKey)
+    const existingWhere = existing?.where ?? []
+
+    RouteMetadataStorage.mergeMetadata(
+      target,
+      { where: [...existingWhere, { key, matcher }] },
+      propertyKey
+    )
   }
 }

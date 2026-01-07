@@ -7,7 +7,7 @@ import { RouteMetadataStorage } from '../metadata/main.ts'
  */
 const MethodDecorator = (method: string) => (pattern: string, name?: string) => {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
-    RouteMetadataStorage.defineMetadata(
+    RouteMetadataStorage.mergeMetadata(
       target,
       {
         name: name ?? propertyKey,

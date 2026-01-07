@@ -1,7 +1,11 @@
 import User from '#models/user'
 import type { HttpContext } from '@adonisjs/core/http'
-import { Get } from '@adonisjs-community/girouette'
+import { Resource, ResourceMiddleware, Only } from '@adonisjs-community/girouette'
+import { middleware } from '#start/kernel'
 
+@Resource({ name: 'session' })
+@Only(['create', 'index', 'destroy'])
+@ResourceMiddleware('*', middleware.auth())
 export default class SessionController {
   async create({ inertia }: HttpContext) {
     return inertia.render('auth/login', {})
@@ -16,11 +20,6 @@ export default class SessionController {
 
   async destroy({ auth, response }: HttpContext) {
     await auth.use('web').logout()
-    response.redirect().toRoute('Session.test')
-  }
-
-  @Get('/test')
-  async test() {
-    return 'Hello heeeey'
+    response.redirect().toRoute('session.index')
   }
 }

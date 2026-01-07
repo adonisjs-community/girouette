@@ -29,3 +29,27 @@ export function extractRoutesList(routes: ReturnType<HttpRouterService['toJSON']
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'ANY', 'HEAD']
 
 export const RESOURCE_METHODS = ['index', 'store', 'show', 'update', 'destroy', 'edit', 'create']
+
+/**
+ * Extracts the method name from a route handler.
+ * Handler can be: array [() => import(...), 'methodName'], lazy string 'path.method',
+ * or object with method/reference property.
+ */
+export function extractMethodFromHandler(handler: unknown): string {
+  if (Array.isArray(handler)) {
+    return handler[1] as string
+  }
+  if (typeof handler === 'string') {
+    return handler.split('.').pop() ?? ''
+  }
+  if (handler && typeof handler === 'object') {
+    const h = handler as Record<string, unknown>
+    if (typeof h.method === 'string') {
+      return h.method
+    }
+    if (typeof h.reference === 'string') {
+      return h.reference.split('.').pop() ?? ''
+    }
+  }
+  return ''
+}

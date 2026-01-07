@@ -1,5 +1,6 @@
-import { REFLECT_RESOURCE_EXCEPT_KEY } from '../constants.js'
 import { ResourceActionNames } from '@adonisjs/core/types/http'
+import { ResourceMetadataStorage } from '../metadata/main.ts'
+import { Constructor } from '../types.ts'
 
 /**
  * The `@Except` decorator specifies which CRUD methods should be excluded from the resource.
@@ -8,20 +9,20 @@ import { ResourceActionNames } from '@adonisjs/core/types/http'
  *
  * @example
  * ```ts
- * @Resource('/posts', 'blog.posts')
+ * @Resource('posts')
  * @Except(['create', 'show'])
  * export default class PostsController {
  *   // Generates routes:
- *   // GET    /posts          (blog.posts.index)
- *   // POST   /posts          (blog.posts.store)
- *   // GET    /posts/:id/edit (blog.posts.edit)
- *   // PUT    /posts/:id      (blog.posts.update)
- *   // DELETE /posts/:id      (blog.posts.destroy)
+ *   // GET    /posts          (posts.index)
+ *   // POST   /posts          (posts.store)
+ *   // GET    /posts/:id/edit (posts.edit)
+ *   // PUT    /posts/:id      (posts.update)
+ *   // DELETE /posts/:id      (posts.destroy)
  * }
  * ```
  */
 export const Except = (names: ResourceActionNames[]) => {
-  return (target: any) => {
-    Reflect.defineMetadata(REFLECT_RESOURCE_EXCEPT_KEY, names, target)
+  return <T extends Constructor>(target: T) => {
+    ResourceMetadataStorage.mergeMetadata(target, { except: names })
   }
 }

@@ -1,5 +1,6 @@
-import { REFLECT_RESOURCE_ONLY_KEY } from '../constants.js'
 import { ResourceActionNames } from '@adonisjs/core/types/http'
+import { ResourceMetadataStorage } from '../metadata/main.ts'
+import { Constructor } from '../types.ts'
 
 /**
  * The `@Only` decorator specifies which CRUD methods should be included in the resource.
@@ -8,17 +9,17 @@ import { ResourceActionNames } from '@adonisjs/core/types/http'
  *
  * @example
  * ```ts
- * @Resource('/posts', 'blog.posts')
+ * @Resource('posts')
  * @Only(['index', 'show'])
  * export default class PostsController {
  *   // Generates routes:
- *   // GET    /posts          (blog.posts.index)
- *   // GET    /posts/:id      (blog.posts.show)
+ *   // GET    /posts          (posts.index)
+ *   // GET    /posts/:id      (posts.show)
  * }
  * ```
  */
 export const Only = (names: ResourceActionNames[]) => {
-  return (target: any) => {
-    Reflect.defineMetadata(REFLECT_RESOURCE_ONLY_KEY, names, target)
+  return <T extends Constructor>(target: T) => {
+    ResourceMetadataStorage.mergeMetadata(target, { only: names })
   }
 }
