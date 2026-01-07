@@ -15,6 +15,7 @@
   },
   "imports": {
     "#features/*": "./app/features/*.js",
+    "#app/*": "./app/*.js",
     "#controllers/*": "./app/controllers/*.js",
     "#exceptions/*": "./app/exceptions/*.js",
     "#models/*": "./app/models/*.js",
@@ -36,7 +37,7 @@
   },
   "devDependencies": {
     "@adonisjs-community/girouette": "workspace:*",
-    "@adonisjs/assembler": "^8.0.0-next.27",
+    "@adonisjs/assembler": "8.0.0-next.29",
     "@adonisjs/eslint-config": "^3.0.0-next.7",
     "@adonisjs/prettier-config": "^1.4.5",
     "@adonisjs/tsconfig": "^2.0.0-next.3",
@@ -60,7 +61,7 @@
   },
   "dependencies": {
     "@adonisjs/auth": "^10.0.0-next.3",
-    "@adonisjs/core": "^7.0.0-next.16",
+    "@adonisjs/core": "7.0.0-next.21",
     "@adonisjs/cors": "^3.0.0-next.0",
     "@adonisjs/inertia": "^4.0.0-next.16",
     "@adonisjs/lucid": "^22.0.0-next.1",

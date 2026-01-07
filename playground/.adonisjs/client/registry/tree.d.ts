@@ -13,4 +13,7 @@ export interface ApiDefinition {
   test: {
     home: typeof routes['test.home']
   }
+  users: {
+    list: typeof routes['users.list']
+  }
 }
