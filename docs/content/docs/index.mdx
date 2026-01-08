@@ -1,0 +1,123 @@
+---
+title: Introduction
+description: Elegant decorator-based routing for AdonisJS v7
+icon: House
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+# Girouette
+
+**Elegant decorator-based routing for AdonisJS v7**
+
+Girouette provides a beautiful, fluent API for defining your AdonisJS routes using decorators. By bringing route definitions closer to your controller methods, Girouette makes your application's routing more intuitive and maintainable.
+
+## Why Girouette?
+
+Traditional AdonisJS routing requires defining routes in a separate file, which can become difficult to maintain as your application grows. Girouette solves this by:
+
+- **Colocation**: Keep route definitions next to your controller methods
+- **Type Safety**: Full TypeScript support with decorator metadata
+- **Familiar Patterns**: Similar to routing in NestJS, Laravel, or Spring Boot
+- **Zero Runtime Overhead**: Routes are registered at boot time
+- **Tuyau Compatible**: Works seamlessly with AdonisJS's type-safe API client
+
+## Quick Example
+
+```typescript
+import { Get, Post, Middleware } from '@adonisjs-community/girouette'
+import { middleware } from '#start/kernel'
+import { HttpContext } from '@adonisjs/core/http'
+
+export default class UsersController {
+  @Get('/users') // [!code highlight]
+  async index() {
+    return User.all()
+  }
+
+  @Get('/users/:id') // [!code highlight]
+  async show({ params }: HttpContext) {
+    return User.findOrFail(params.id)
+  }
+
+  @Post('/users') // [!code highlight]
+  @Middleware([middleware.auth()]) // [!code highlight]
+  async store({ request }: HttpContext) {
+    return User.create(request.body())
+  }
+}
+```
+
+### How It Works
+
+Girouette generates a `start/routes.girouette.ts` file that contains all your decorated routes. This file is automatically kept in sync with your controllers, enabling **Hot Module Replacement (HMR)** during development. When you modify the logic inside a controller method, your changes are reflected instantly without restarting the server.
+
+<Callout type="warn">
+  When you change the routing itself (adding/removing routes, modifying paths, or changing decorators), a full server reload is required since routes are registered at boot time.
+</Callout>
+
+<Callout type="info">
+  Girouette automatically scans your controllers and registers routes at application boot.
+  No additional configuration needed after installation.
+</Callout>
+
+## Features at a Glance
+
+<Cards>
+  <Card title="HTTP Methods" href="/docs/basic-routing">
+    @Get, @Post, @Put, @Patch, @Delete, @Any decorators for all HTTP methods
+  </Card>
+  <Card title="Route Groups" href="/docs/route-groups">
+    Group routes with shared prefixes, middleware, and domain restrictions
+  </Card>
+  <Card title="RESTful Resources" href="/docs/resources">
+    Automatic CRUD route generation with @Resource decorator
+  </Card>
+  <Card title="Middleware" href="/docs/middleware">
+    Apply middleware at route, resource, or group level
+  </Card>
+  <Card title="Route Constraints" href="/docs/constraints">
+    Validate route parameters with regex or custom matchers
+  </Card>
+  <Card title="Tuyau Integration" href="/docs/tuyau-integration">
+    Full support for type-safe API clients
+  </Card>
+</Cards>
+
+## Getting Started
+
+Install Girouette via the AdonisJS CLI:
+
+```bash
+node ace add @adonisjs-community/girouette
+```
+
+That's it! You can now start using decorators in your controllers.
+
+## Available Decorators
+
+| Decorator | Description |
+|-----------|-------------|
+| `@Get` | Define a GET route |
+| `@Post` | Define a POST route |
+| `@Put` | Define a PUT route |
+| `@Patch` | Define a PATCH route |
+| `@Delete` | Define a DELETE route |
+| `@Any` | Match any HTTP method |
+| `@Resource` | Create RESTful resource routes |
+| `@Group` | Group routes with prefix/name |
+| `@GroupMiddleware` | Apply middleware to all routes |
+| `@GroupDomain` | Restrict routes to a domain |
+| `@Middleware` | Apply middleware to a route |
+| `@ResourceMiddleware` | Apply middleware to resource actions |
+| `@Where` | Add route parameter constraints |
+| `@Pick` | Include specific resource actions |
+| `@Except` | Exclude specific resource actions |
+| `@ApiOnly` | Include only API actions |
+
+## Next Steps
+
+- [Installation Guide](/docs/installation) - Detailed setup instructions
+- [Basic Routing](/docs/basic-routing) - Learn the HTTP method decorators
+- [Resources](/docs/resources) - RESTful resource controllers

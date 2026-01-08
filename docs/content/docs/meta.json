@@ -1,0 +1,17 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "installation",
+    "---Getting Started---",
+    "basic-routing",
+    "route-groups",
+    "middleware",
+    "---Advanced---",
+    "resources",
+    "constraints",
+    "---Integrations---",
+    "tuyau-integration"
+  ],
+  "icon": "Book"
+}

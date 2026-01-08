@@ -1,0 +1,282 @@
+---
+title: Middleware
+description: Protect routes with middleware at different levels
+icon: Shield
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Middleware
+
+Girouette provides flexible middleware application at three levels: individual routes, resource actions, and entire controller groups.
+
+## Route-Level Middleware
+
+Apply middleware to individual routes using the `@Middleware` decorator:
+
+```typescript
+import { Get, Post, Middleware } from '@adonisjs-community/girouette'
+import { middleware } from '#start/kernel'
+import { HttpContext } from '@adonisjs/core/http'
+
+export default class ProfileController {
+  @Get('/profile')
+  @Middleware([middleware.auth()]) // [!code highlight]
+  async show({ auth }: HttpContext) {
+    return auth.user
+  }
+
+  @Post('/profile')
+  @Middleware([middleware.auth(), middleware.verified()]) // [!code highlight]
+  async update({ auth, request }: HttpContext) {
+    return auth.user!.merge(request.body()).save()
+  }
+
+  @Get('/public-profile/:username')
+  async publicProfile({ params }: HttpContext) {
+    // No middleware - publicly accessible
+    return User.findByOrFail('username', params.username)
+  }
+}
+```
+
+### Multiple Middleware
+
+Stack multiple middleware by passing an array:
+
+```typescript
+@Post('/admin/users')
+@Middleware([ // [!code highlight:4]
+  middleware.auth(),
+  middleware.role(['admin']),
+  middleware.throttle({ maxAttempts: 10 }),
+])
+async createUser({ request }: HttpContext) {
+  return User.create(request.body())
+}
+```
+
+<Callout type="info">
+  Middleware executes in the order specified in the array.
+</Callout>
+
+## Group-Level Middleware
+
+Apply middleware to all routes in a controller using `@GroupMiddleware`:
+
+```typescript
+import { Group, GroupMiddleware, Get, Post, Delete } from '@adonisjs-community/girouette'
+import { middleware } from '#start/kernel'
+
+@Group({ prefix: '/admin' })
+@GroupMiddleware([middleware.auth(), middleware.role(['admin'])])
+export default class AdminController {
+  @Get('/dashboard')
+  async dashboard() {
+    // Protected by auth + admin role
+  }
+
+  @Get('/users')
+  async listUsers() {
+    // Protected by auth + admin role
+  }
+
+  @Delete('/users/:id')
+  async deleteUser() {
+    // Protected by auth + admin role
+  }
+}
+```
+
+### Combining Group and Route Middleware
+
+Route-level middleware is applied **in addition to** group middleware:
+
+```typescript
+@Group({ prefix: '/api' })
+@GroupMiddleware([middleware.auth()])
+export default class ApiController {
+  @Get('/profile')
+  async profile() {
+    // Only auth middleware
+  }
+
+  @Delete('/account')
+  @Middleware([middleware.confirmed()])
+  async deleteAccount() {
+    // auth middleware (from group) + confirmed middleware
+  }
+}
+```
+
+## Resource Middleware
+
+For resource controllers, use `@ResourceMiddleware` to apply middleware to specific actions:
+
+```typescript
+import { Resource, ResourceMiddleware } from '@adonisjs-community/girouette'
+import { middleware } from '#start/kernel'
+
+@Resource('posts')
+@ResourceMiddleware(['store', 'update', 'destroy'], [middleware.auth()])
+export default class PostsController {
+  async index() {
+    // Public - no middleware
+    return Post.all()
+  }
+
+  async show({ params }: HttpContext) {
+    // Public - no middleware
+    return Post.findOrFail(params.id)
+  }
+
+  async store({ request, auth }: HttpContext) {
+    // Protected by auth middleware
+    return auth.user!.related('posts').create(request.body())
+  }
+
+  async update({ params, request, auth }: HttpContext) {
+    // Protected by auth middleware
+    const post = await Post.findOrFail(params.id)
+    return post.merge(request.body()).save()
+  }
+
+  async destroy({ params }: HttpContext) {
+    // Protected by auth middleware
+    const post = await Post.findOrFail(params.id)
+    await post.delete()
+    return { deleted: true }
+  }
+}
+```
+
+### Multiple Resource Middleware
+
+Apply different middleware to different action groups:
+
+```typescript
+@Resource('articles')
+@ResourceMiddleware(['index', 'show'], [middleware.cache()])
+@ResourceMiddleware(['store'], [middleware.auth(), middleware.throttle()])
+@ResourceMiddleware(['update', 'destroy'], [middleware.auth(), middleware.author()])
+export default class ArticlesController {
+  async index() {
+    // Cached response
+  }
+
+  async show() {
+    // Cached response
+  }
+
+  async store() {
+    // Auth + rate limiting
+  }
+
+  async update() {
+    // Auth + ownership verification
+  }
+
+  async destroy() {
+    // Auth + ownership verification
+  }
+}
+```
+
+### Using String for Single Action
+
+For a single action, you can pass a string instead of an array:
+
+```typescript
+@Resource('comments')
+@ResourceMiddleware('destroy', [middleware.auth(), middleware.moderator()])
+export default class CommentsController {
+  // Only destroy is protected
+}
+```
+
+## Middleware Execution Order
+
+Middleware executes in this order:
+
+1. **Group middleware** (from `@GroupMiddleware`)
+2. **Resource middleware** (from `@ResourceMiddleware`)
+3. **Route middleware** (from `@Middleware`)
+
+```typescript
+@Group({ prefix: '/api' })
+@GroupMiddleware([middleware.logger()])  // 1st
+@Resource('posts')
+@ResourceMiddleware('store', [middleware.auth()])  // 2nd
+export default class PostsController {
+  @Post('/posts')
+  @Middleware([middleware.validated()])  // 3rd
+  async store() {
+    // Execution: logger → auth → validated
+  }
+}
+```
+
+## Common Middleware Patterns
+
+### Authentication Gate
+
+```typescript
+@GroupMiddleware([middleware.auth()])
+export default class ProtectedController {
+  @Get('/dashboard')
+  async dashboard() { /* ... */ }
+
+  @Get('/settings')
+  async settings() { /* ... */ }
+}
+```
+
+### Role-Based Access
+
+```typescript
+@Group({ prefix: '/admin' })
+@GroupMiddleware([middleware.auth(), middleware.role(['admin', 'moderator'])])
+export default class AdminController {
+  @Delete('/users/:id')
+  @Middleware([middleware.role(['admin'])])  // Additional restriction
+  async deleteUser() {
+    // Only admins, not moderators
+  }
+}
+```
+
+### API Rate Limiting
+
+```typescript
+@Group({ prefix: '/api' })
+@GroupMiddleware([middleware.throttle({ maxAttempts: 60, decay: 60 })])
+export default class ApiController {
+  @Post('/expensive-operation')
+  @Middleware([middleware.throttle({ maxAttempts: 5, decay: 60 })])
+  async expensiveOperation() {
+    // Stricter limit for this endpoint
+  }
+}
+```
+
+### Guest-Only Routes
+
+```typescript
+export default class AuthController {
+  @Get('/login')
+  @Middleware([middleware.guest()])
+  async showLogin() {
+    // Only accessible if NOT authenticated
+  }
+
+  @Post('/login')
+  @Middleware([middleware.guest()])
+  async login() { /* ... */ }
+}
+```
+
+## Next Steps
+
+- [Resources](/docs/resources) - RESTful resource controllers
+- [Route Constraints](/docs/constraints) - Validate route parameters
+- [Tuyau Integration](/docs/tuyau-integration) - Type-safe API clients

@@ -1,0 +1,177 @@
+---
+title: Installation
+description: How to install and configure Girouette in your AdonisJS application
+icon: Download
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+# Installation
+
+Getting Girouette up and running in your AdonisJS v7 application is straightforward.
+
+## Quick Install
+
+<Steps>
+  <Step>
+    ### Install via AdonisJS CLI
+
+    The recommended way to install Girouette is using the AdonisJS `add` command:
+
+    ```bash
+    node ace add @adonisjs-community/girouette
+    ```
+
+    This will:
+    - Install the package
+    - Create the configuration file
+    - Register the provider automatically
+  </Step>
+
+  <Step>
+    ### Start Using Decorators
+
+    Import and use decorators in your controllers:
+
+    ```typescript
+    import { Get } from '@adonisjs-community/girouette' // [!code highlight]
+
+    export default class HomeController {
+      @Get('/') // [!code highlight]
+      async index() {
+        return { message: 'Hello World!' }
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Manual Installation
+
+If you prefer manual setup:
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+    ```bash
+    npm install @adonisjs-community/girouette
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @adonisjs-community/girouette
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @adonisjs-community/girouette
+    ```
+  </Tab>
+</Tabs>
+
+Then run the configure command:
+
+```bash
+node ace configure @adonisjs-community/girouette
+```
+
+## Configuration
+
+The configuration file is created at `config/girouette.ts`:
+
+```typescript title="config/girouette.ts"
+import { defineConfig } from '@adonisjs-community/girouette'
+
+export default defineConfig({
+  /**
+   * Glob pattern for controller discovery
+   * By default, scans all files ending with _controller.ts in the app folder
+   */
+  controllersGlob: './app/**/*_controller.ts', // [!code highlight]
+})
+```
+
+### Controller Discovery
+
+By convention, Girouette recursively scans all files in the `./app` folder that end with `_controller.ts`. You can customize this behavior:
+
+```typescript
+export default defineConfig({
+  // Only scan specific directories
+  controllersGlob: './app/controllers/**/*_controller.ts',
+})
+```
+
+```typescript
+export default defineConfig({
+  // Include multiple patterns
+  controllersGlob: './app/{controllers,modules}/**/*_controller.ts',
+})
+```
+
+<Callout type="warn">
+  Make sure your controller files follow the naming convention (`*_controller.ts`)
+  or update the glob pattern to match your file naming.
+</Callout>
+
+## Provider Registration
+
+The provider should be automatically registered in your `adonisrc.ts`. If not, add it manually:
+
+```typescript title="adonisrc.ts"
+import { defineConfig } from '@adonisjs/core/app'
+
+export default defineConfig({
+  providers: [
+    // ... other providers
+    () => import('@adonisjs-community/girouette/girouette_provider'), // [!code highlight]
+  ],
+})
+```
+
+## TypeScript Configuration
+
+Girouette uses TypeScript decorators. Ensure your `tsconfig.json` has the following options enabled:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "experimentalDecorators": true, // [!code highlight]
+    "emitDecoratorMetadata": true // [!code highlight]
+  }
+}
+```
+
+<Callout type="info">
+  AdonisJS v7 applications already have these options enabled by default.
+</Callout>
+
+## Verifying Installation
+
+After installation, start your development server:
+
+```bash
+node ace serve --watch
+```
+
+Create a simple controller to verify everything works:
+
+```typescript title="app/controllers/health_controller.ts"
+import { Get } from '@adonisjs-community/girouette'
+
+export default class HealthController {
+  @Get('/health')
+  async check() {
+    return { status: 'ok', timestamp: new Date().toISOString() }
+  }
+}
+```
+
+Visit `http://localhost:3333/health` to confirm the route is working.
+
+## Next Steps
+
+- [Basic Routing](/docs/basic-routing) - Learn about HTTP method decorators
+- [Route Groups](/docs/route-groups) - Organize routes with groups
+- [Resources](/docs/resources) - Create RESTful resource controllers
