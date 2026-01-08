@@ -1,0 +1,257 @@
+---
+title: Basic Routing
+description: Define routes using HTTP method decorators
+icon: Route
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Basic Routing
+
+Girouette provides decorators for all standard HTTP methods, allowing you to define routes directly on your controller methods.
+
+## HTTP Method Decorators
+
+### Available Decorators
+
+| Decorator | HTTP Method | Example |
+|-----------|-------------|---------|
+| `@Get` | GET | Retrieve resources |
+| `@Post` | POST | Create resources |
+| `@Put` | PUT | Replace resources |
+| `@Patch` | PATCH | Update resources |
+| `@Delete` | DELETE | Remove resources |
+| `@Any` | All methods | Match any HTTP method |
+
+### Basic Usage
+
+```ts
+import {
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Any,
+} from '@adonisjs-community/girouette'
+import { HttpContext } from '@adonisjs/core/http'
+
+export default class ArticlesController {
+  @Get('/articles') // [!code highlight]
+  async index() {
+    return Article.all()
+  }
+
+  @Get('/articles/:id') // [!code highlight]
+  async show({ params }: HttpContext) {
+    return Article.findOrFail(params.id)
+  }
+
+  @Post('/articles') // [!code highlight]
+  async store({ request }: HttpContext) {
+    return Article.create(request.body())
+  }
+
+  @Put('/articles/:id') // [!code highlight]
+  async replace({ params, request }: HttpContext) {
+    const article = await Article.findOrFail(params.id)
+    return article.merge(request.body()).save()
+  }
+
+  @Patch('/articles/:id') // [!code highlight]
+  async update({ params, request }: HttpContext) {
+    const article = await Article.findOrFail(params.id)
+    return article.merge(request.only(['title'])).save()
+  }
+
+  @Delete('/articles/:id') // [!code highlight]
+  async destroy({ params }: HttpContext) {
+    const article = await Article.findOrFail(params.id)
+    await article.delete()
+    return { deleted: true }
+  }
+
+  @Any('/webhook') // [!code highlight]
+  async webhook({ request }: HttpContext) {
+    return { method: request.method() }
+  }
+}
+```
+
+## Route Parameters
+
+### Basic Parameters
+
+Use `:param` syntax to define route parameters:
+
+```typescript
+@Get('/users/:id') // [!code highlight]
+async show({ params }: HttpContext) {
+  return User.findOrFail(params.id) // [!code highlight]
+}
+```
+
+### Multiple Parameters
+
+```typescript
+@Get('/users/:userId/posts/:postId') // [!code highlight]
+async show({ params }: HttpContext) {
+  const user = await User.findOrFail(params.userId) // [!code highlight]
+  return user.related('posts').query().where('id', params.postId).firstOrFail() // [!code highlight]
+}
+```
+
+### Optional Parameters
+
+Use `?` to mark a parameter as optional:
+
+```typescript
+@Get('/articles/:category?') // [!code highlight]
+async index({ params }: HttpContext) {
+  if (params.category) {
+    return Article.query().where('category', params.category)
+  }
+  return Article.all()
+}
+```
+
+### Wildcard Parameters
+
+Use `*` to capture the rest of the path:
+
+```typescript
+@Get('/files/*path') // [!code highlight]
+async serve({ params }: HttpContext) {
+  // /files/images/logo.png → params.path = 'images/logo.png'
+  return serveFile(params.path) // [!code highlight]
+}
+```
+
+## Named Routes
+
+You can optionally name your routes by passing a second argument to any HTTP method decorator:
+
+```typescript
+@Get('/users', 'users.index') // [!code highlight]
+async index() {
+  return User.all()
+}
+
+@Get('/users/:id', 'users.show') // [!code highlight]
+async show({ params }: HttpContext) {
+  return User.findOrFail(params.id)
+}
+
+@Post('/users', 'users.store') // [!code highlight]
+async store({ request }: HttpContext) {
+  return User.create(request.body())
+}
+```
+
+Named routes can be used to generate URLs:
+
+```typescript
+import router from '@adonisjs/core/services/router'
+
+// Generate URL from route name
+const url = router.makeUrl('users.show', { id: 1 })
+// Result: /users/1
+```
+
+<Callout type="info">
+  When using the `@Resource` decorator, routes are automatically named following
+  RESTful conventions (e.g., `posts.index`, `posts.show`, `posts.store`).
+</Callout>
+
+## Response Handling
+
+Girouette routes work seamlessly with AdonisJS response handling:
+
+### Return Values
+
+Simply return data from your controller methods:
+
+```typescript
+@Get('/api/users')
+async index() {
+  // Automatically serialized as JSON
+  return User.all()
+}
+
+@Get('/api/status')
+async status() {
+  // Objects are serialized as JSON
+  return { status: 'healthy', uptime: process.uptime() }
+}
+```
+
+### Using Response Object
+
+For more control, use the `response` object:
+
+```typescript
+@Get('/download/:file')
+async download({ params, response }: HttpContext) {
+  return response.download(`./uploads/${params.file}`)
+}
+
+@Post('/users')
+async store({ request, response }: HttpContext) {
+  const user = await User.create(request.body())
+  return response.status(201).json(user)
+}
+
+@Get('/redirect')
+async redirect({ response }: HttpContext) {
+  return response.redirect('/new-location')
+}
+```
+
+## Best Practices
+
+### Controller Organization
+
+Keep related routes in the same controller:
+
+```typescript
+// Good: Single responsibility
+export default class UsersController {
+  @Get('/users')
+  async index() { /* ... */ }
+
+  @Get('/users/:id')
+  async show() { /* ... */ }
+
+  @Post('/users')
+  async store() { /* ... */ }
+}
+
+// Avoid: Mixing unrelated routes
+export default class MixedController {
+  @Get('/users')
+  async users() { /* ... */ }
+
+  @Get('/products')
+  async products() { /* ... */ }
+}
+```
+
+### Route Naming Conventions
+
+Follow consistent naming patterns:
+
+```typescript
+// RESTful conventions
+@Get('/resources', 'resources.index')       // List
+@Get('/resources/:id', 'resources.show')    // Show single
+@Post('/resources', 'resources.store')      // Create
+@Put('/resources/:id', 'resources.update')  // Full update
+@Patch('/resources/:id', 'resources.patch') // Partial update
+@Delete('/resources/:id', 'resources.destroy') // Delete
+```
+
+## Next Steps
+
+- [Route Groups](/docs/route-groups) - Organize routes with prefixes and shared configuration
+- [Middleware](/docs/middleware) - Protect your routes
+- [Route Constraints](/docs/constraints) - Validate route parameters

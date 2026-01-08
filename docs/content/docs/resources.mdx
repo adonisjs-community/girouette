@@ -1,0 +1,334 @@
+---
+title: RESTful Resources
+description: Automatic CRUD route generation with the Resource decorator
+icon: Database
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# RESTful Resources
+
+The `@Resource` decorator automatically generates conventional RESTful routes for your controllers, eliminating boilerplate and ensuring consistency.
+
+## Basic Resource
+
+```typescript
+import { Resource } from '@adonisjs-community/girouette'
+import { HttpContext } from '@adonisjs/core/http'
+
+@Resource('posts')
+export default class PostsController {
+  async index() {
+    // GET /posts
+    return Post.all()
+  }
+
+  async create() {
+    // GET /posts/create
+    return 'Show create form'
+  }
+
+  async store({ request }: HttpContext) {
+    // POST /posts
+    return Post.create(request.body())
+  }
+
+  async show({ params }: HttpContext) {
+    // GET /posts/:id
+    return Post.findOrFail(params.id)
+  }
+
+  async edit({ params }: HttpContext) {
+    // GET /posts/:id/edit
+    return `Edit form for post ${params.id}`
+  }
+
+  async update({ params, request }: HttpContext) {
+    // PUT/PATCH /posts/:id
+    const post = await Post.findOrFail(params.id)
+    return post.merge(request.body()).save()
+  }
+
+  async destroy({ params }: HttpContext) {
+    // DELETE /posts/:id
+    const post = await Post.findOrFail(params.id)
+    await post.delete()
+    return { deleted: true }
+  }
+}
+```
+
+## Generated Routes
+
+The `@Resource('posts')` decorator creates these routes:
+
+| Method | URL | Controller Method | Route Name |
+|--------|-----|-------------------|------------|
+| GET | `/posts` | `index` | `posts.index` |
+| GET | `/posts/create` | `create` | `posts.create` |
+| POST | `/posts` | `store` | `posts.store` |
+| GET | `/posts/:id` | `show` | `posts.show` |
+| GET | `/posts/:id/edit` | `edit` | `posts.edit` |
+| PUT/PATCH | `/posts/:id` | `update` | `posts.update` |
+| DELETE | `/posts/:id` | `destroy` | `posts.destroy` |
+
+<Callout type="info">
+  You only need to implement the actions you need.
+  Girouette won't create routes for missing methods.
+</Callout>
+
+## Custom Parameter Names
+
+Rename the route parameter from `:id` to something more meaningful:
+
+```typescript
+import { Resource } from '@adonisjs-community/girouette'
+
+@Resource({ name: 'articles', params: { articles: 'slug' } })
+export default class ArticlesController {
+  async show({ params }: HttpContext) {
+    // GET /articles/:slug
+    // params.slug instead of params.id
+    return Article.findByOrFail('slug', params.slug)
+  }
+
+  async update({ params, request }: HttpContext) {
+    // PUT/PATCH /articles/:slug
+    const article = await Article.findByOrFail('slug', params.slug)
+    return article.merge(request.body()).save()
+  }
+}
+```
+
+## Nested Resources
+
+Create nested resources for parent-child relationships:
+
+```typescript
+import { Resource } from '@adonisjs-community/girouette'
+
+@Resource({ name: 'users.posts', params: { users: 'userId', posts: 'postId' } })
+export default class UserPostsController {
+  async index({ params }: HttpContext) {
+    // GET /users/:userId/posts
+    const user = await User.findOrFail(params.userId)
+    return user.related('posts').query()
+  }
+
+  async show({ params }: HttpContext) {
+    // GET /users/:userId/posts/:postId
+    return Post.query()
+      .where('userId', params.userId)
+      .where('id', params.postId)
+      .firstOrFail()
+  }
+
+  async store({ params, request }: HttpContext) {
+    // POST /users/:userId/posts
+    const user = await User.findOrFail(params.userId)
+    return user.related('posts').create(request.body())
+  }
+
+  async destroy({ params }: HttpContext) {
+    // DELETE /users/:userId/posts/:postId
+    const post = await Post.query()
+      .where('userId', params.userId)
+      .where('id', params.postId)
+      .firstOrFail()
+    await post.delete()
+    return { deleted: true }
+  }
+}
+```
+
+### Deeply Nested Resources
+
+```typescript
+@Resource({
+  name: 'teams.projects.tasks',
+  params: { teams: 'teamId', projects: 'projectId', tasks: 'taskId' }
+})
+export default class TasksController {
+  async show({ params }: HttpContext) {
+    // GET /teams/:teamId/projects/:projectId/tasks/:taskId
+    return Task.query()
+      .where('projectId', params.projectId)
+      .where('id', params.taskId)
+      .firstOrFail()
+  }
+}
+```
+
+## Filtering Resource Actions
+
+### @Pick - Include Only Specific Actions
+
+```typescript
+import { Resource, Pick } from '@adonisjs-community/girouette'
+
+@Resource('products')
+@Pick(['index', 'show'])
+export default class ProductsController {
+  async index() {
+    // GET /products - included
+    return Product.all()
+  }
+
+  async show({ params }: HttpContext) {
+    // GET /products/:id - included
+    return Product.findOrFail(params.id)
+  }
+
+  // create, store, edit, update, destroy are NOT registered
+}
+```
+
+### @Except - Exclude Specific Actions
+
+```typescript
+import { Resource, Except } from '@adonisjs-community/girouette'
+
+@Resource('articles')
+@Except(['create', 'edit'])
+export default class ArticlesController {
+  async index() { /* ... */ }    // Included
+  async store() { /* ... */ }    // Included
+  async show() { /* ... */ }     // Included
+  async update() { /* ... */ }   // Included
+  async destroy() { /* ... */ }  // Included
+  // create and edit are excluded
+}
+```
+
+### @ApiOnly - API Resources
+
+For JSON APIs, exclude form-rendering actions (`create` and `edit`):
+
+```typescript
+import { Resource, ApiOnly } from '@adonisjs-community/girouette'
+
+@Resource('api.users')
+@ApiOnly()
+export default class ApiUsersController {
+  async index() {
+    // GET /api/users
+    return User.all()
+  }
+
+  async store({ request }: HttpContext) {
+    // POST /api/users
+    return User.create(request.body())
+  }
+
+  async show({ params }: HttpContext) {
+    // GET /api/users/:id
+    return User.findOrFail(params.id)
+  }
+
+  async update({ params, request }: HttpContext) {
+    // PUT/PATCH /api/users/:id
+    const user = await User.findOrFail(params.id)
+    return user.merge(request.body()).save()
+  }
+
+  async destroy({ params }: HttpContext) {
+    // DELETE /api/users/:id
+    const user = await User.findOrFail(params.id)
+    await user.delete()
+    return { deleted: true }
+  }
+
+  // 'create' and 'edit' actions are automatically excluded
+}
+```
+
+<Callout type="info">
+  `@ApiOnly()` is equivalent to `@Except(['create', 'edit'])`.
+  Use it for APIs that don't render HTML forms.
+</Callout>
+
+## Resource Middleware
+
+Apply middleware to specific resource actions:
+
+```typescript
+import { Resource, ResourceMiddleware } from '@adonisjs-community/girouette'
+import { middleware } from '#start/kernel'
+
+@Resource('posts')
+@ResourceMiddleware(['store', 'update', 'destroy'], [middleware.auth()])
+export default class PostsController {
+  async index() {
+    // Public
+  }
+
+  async show() {
+    // Public
+  }
+
+  async store() {
+    // Protected
+  }
+
+  async update() {
+    // Protected
+  }
+
+  async destroy() {
+    // Protected
+  }
+}
+```
+
+### Multiple Middleware Configurations
+
+```typescript
+@Resource('comments')
+@ResourceMiddleware(['index', 'show'], [middleware.cache(60)])
+@ResourceMiddleware(['store'], [middleware.auth(), middleware.throttle()])
+@ResourceMiddleware(['update', 'destroy'], [middleware.auth(), middleware.ownership()])
+export default class CommentsController {
+  // Different middleware for different action groups
+}
+```
+
+## Combining with Groups
+
+Resources work seamlessly with group decorators:
+
+```typescript
+import { Group, GroupMiddleware, Resource, ApiOnly } from '@adonisjs-community/girouette'
+import { middleware } from '#start/kernel'
+
+@Group({ name: 'api.v1', prefix: '/api/v1' })
+@GroupMiddleware([middleware.auth('api')])
+@Resource('projects')
+@ApiOnly()
+export default class ProjectsController {
+  async index() {
+    // GET /api/v1/projects
+    // Route name: api.v1.projects.index
+    // Protected by API auth
+  }
+
+  async store({ request, auth }: HttpContext) {
+    // POST /api/v1/projects
+    return auth.user!.related('projects').create(request.body())
+  }
+}
+```
+
+## Resource Comparison
+
+| Decorator | Actions Included |
+|-----------|------------------|
+| `@Resource('name')` | All 7 actions |
+| `@Resource('name') @ApiOnly()` | index, show, store, update, destroy |
+| `@Resource('name') @Pick(['index', 'show'])` | Only index and show |
+| `@Resource('name') @Except(['destroy'])` | All except destroy |
+
+## Next Steps
+
+- [Middleware](/docs/middleware) - More on middleware patterns
+- [Route Constraints](/docs/constraints) - Validate resource parameters
+- [Tuyau Integration](/docs/tuyau-integration) - Type-safe API clients

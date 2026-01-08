@@ -1,0 +1,233 @@
+---
+title: Route Constraints
+description: Validate route parameters with regex and custom matchers
+icon: ShieldCheck
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Route Constraints
+
+The `@Where` decorator allows you to add validation constraints to route parameters, ensuring they match specific patterns before the route handler is invoked.
+
+## Basic Usage
+
+Use regex patterns to validate parameters:
+
+```typescript
+import { Get, Where } from '@adonisjs-community/girouette'
+import { HttpContext } from '@adonisjs/core/http'
+
+export default class PostsController {
+  @Get('/posts/:id')
+  @Where('id', /^\d+$/)
+  async show({ params }: HttpContext) {
+    // Only matches if :id is numeric
+    // /posts/123 ✓
+    // /posts/abc ✗
+    return Post.findOrFail(params.id)
+  }
+}
+```
+
+## Common Patterns
+
+### Numeric IDs
+
+```typescript
+@Get('/users/:id')
+@Where('id', /^\d+$/)
+async show({ params }: HttpContext) {
+  // Matches: /users/1, /users/123
+  // Rejects: /users/abc, /users/12a
+}
+```
+
+### Slugs
+
+```typescript
+@Get('/articles/:slug')
+@Where('slug', /^[a-z0-9-]+$/)
+async show({ params }: HttpContext) {
+  // Matches: /articles/my-article, /articles/post-123
+  // Rejects: /articles/My_Article, /articles/post@123
+}
+```
+
+### UUIDs
+
+```typescript
+@Get('/resources/:uuid')
+@Where('uuid', /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+async show({ params }: HttpContext) {
+  // Matches: /resources/550e8400-e29b-41d4-a716-446655440000
+}
+```
+
+### Date Formats
+
+```typescript
+@Get('/events/:date')
+@Where('date', /^\d{4}-\d{2}-\d{2}$/)
+async show({ params }: HttpContext) {
+  // Matches: /events/2024-01-15
+  // Rejects: /events/01-15-2024, /events/2024/01/15
+}
+```
+
+### Usernames
+
+```typescript
+@Get('/users/:username')
+@Where('username', /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/)
+async profile({ params }: HttpContext) {
+  // Starts with letter, alphanumeric + underscore, 3-20 chars
+}
+```
+
+## Multiple Constraints
+
+Apply constraints to multiple parameters:
+
+```typescript
+@Get('/users/:userId/posts/:postId')
+@Where('userId', /^\d+$/)
+@Where('postId', /^\d+$/)
+async show({ params }: HttpContext) {
+  // Both parameters must be numeric
+}
+```
+
+## String Matchers
+
+Use string values for exact matches:
+
+```typescript
+@Get('/docs/:version')
+@Where('version', 'v1|v2|v3')
+async show({ params }: HttpContext) {
+  // Only matches: /docs/v1, /docs/v2, /docs/v3
+}
+```
+
+## Function Matchers
+
+Use custom functions for complex validation:
+
+```typescript
+@Get('/files/:filename')
+@Where('filename', (value: string) => {
+  const allowedExtensions = ['.pdf', '.doc', '.txt']
+  return allowedExtensions.some(ext => value.endsWith(ext))
+})
+async download({ params }: HttpContext) {
+  // Custom logic for validation
+}
+```
+
+### Async Function Matchers
+
+```typescript
+@Get('/users/:username')
+@Where('username', async (value: string) => {
+  // Could check against a blocklist
+  const blocked = ['admin', 'root', 'system']
+  return !blocked.includes(value.toLowerCase())
+})
+async profile({ params }: HttpContext) {
+  // Rejects reserved usernames
+}
+```
+
+## Combining with Resources
+
+Apply constraints to resource parameters:
+
+```typescript
+import { Resource, Where } from '@adonisjs-community/girouette'
+
+@Resource({ name: 'articles', params: { articles: 'slug' } })
+// Note: Resource-level constraints apply to all resource routes
+export default class ArticlesController {
+  @Where('slug', /^[a-z0-9-]+$/)
+  async show({ params }: HttpContext) {
+    return Article.findByOrFail('slug', params.slug)
+  }
+}
+```
+
+## Common Constraint Patterns
+
+Here's a reference of commonly used patterns:
+
+```typescript
+// Numeric ID
+@Where('id', /^\d+$/)
+
+// Positive integer (no leading zeros)
+@Where('id', /^[1-9]\d*$/)
+
+// Slug (lowercase, numbers, hyphens)
+@Where('slug', /^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+
+// UUID v4
+@Where('uuid', /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+
+// Date (YYYY-MM-DD)
+@Where('date', /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/)
+
+// Time (HH:MM)
+@Where('time', /^([01]\d|2[0-3]):[0-5]\d$/)
+
+// Alphanumeric
+@Where('code', /^[a-zA-Z0-9]+$/)
+
+// Hex color
+@Where('color', /^[0-9a-fA-F]{6}$/)
+
+// File extension
+@Where('file', /^[\w-]+\.(jpg|png|gif|pdf)$/i)
+
+// Semantic version
+@Where('version', /^\d+\.\d+\.\d+$/)
+
+// Language code (e.g., en, en-US)
+@Where('lang', /^[a-z]{2}(-[A-Z]{2})?$/)
+```
+
+## Error Handling
+
+When a constraint fails, the route won't match and AdonisJS will continue to the next matching route or return a 404:
+
+```typescript
+@Get('/posts/:id')
+@Where('id', /^\d+$/)
+async showNumeric({ params }: HttpContext) {
+  // Only numeric IDs
+}
+
+@Get('/posts/:slug')
+@Where('slug', /^[a-z-]+$/)
+async showBySlug({ params }: HttpContext) {
+  // Falls through if ID constraint fails
+  // Handles slug-based lookups
+}
+```
+
+<Callout type="info">
+  Constraints act as guards—they prevent the route from matching if the
+  parameter doesn't meet the criteria. They don't throw validation errors.
+</Callout>
+
+## Performance Considerations
+
+- Regex constraints are evaluated before the controller method is called
+- Simple patterns are faster than complex ones
+- Function matchers add overhead—use regex when possible
+- Async matchers should be used sparingly
+
+## Next Steps
+
+- [Tuyau Integration](/docs/tuyau-integration) - Type-safe API clients
+- [Basic Routing](/docs/basic-routing) - HTTP method decorators
+- [Resources](/docs/resources) - RESTful resource routes

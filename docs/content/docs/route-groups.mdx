@@ -1,0 +1,250 @@
+---
+title: Route Groups
+description: Organize routes with shared prefixes, names, and domain restrictions
+icon: FolderTree
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Route Groups
+
+Girouette provides powerful decorators for grouping routes that share common configuration. Use groups to apply URL prefixes, name prefixes, middleware, and domain restrictions to all routes in a controller.
+
+## @Group Decorator
+
+The `@Group` decorator allows you to add URL and name prefixes to all routes in a controller.
+
+### URL Prefix Only
+
+```typescript
+import { Group, Get, Post } from '@adonisjs-community/girouette'
+
+@Group({ prefix: '/api/v1' })
+export default class UsersController {
+  @Get('/users')
+  async index() {
+    // Route: GET /api/v1/users
+  }
+
+  @Post('/users')
+  async store() {
+    // Route: POST /api/v1/users
+  }
+
+  @Get('/users/:id')
+  async show() {
+    // Route: GET /api/v1/users/:id
+  }
+}
+```
+
+### Name Prefix Only
+
+```typescript
+import { Group, Get } from '@adonisjs-community/girouette'
+
+@Group({ name: 'admin' })
+export default class AdminController {
+  @Get('/dashboard', 'dashboard')
+  async dashboard() {
+    // Route name: admin.dashboard
+  }
+
+  @Get('/settings', 'settings')
+  async settings() {
+    // Route name: admin.settings
+  }
+}
+```
+
+### Both URL and Name Prefix
+
+```typescript
+import { Group, Get, Post } from '@adonisjs-community/girouette'
+
+@Group({ name: 'api', prefix: '/api/v1' })
+export default class ApiController {
+  @Get('/products', 'products.index')
+  async listProducts() {
+    // URL: GET /api/v1/products
+    // Name: api.products.index
+  }
+
+  @Post('/products', 'products.store')
+  async createProduct() {
+    // URL: POST /api/v1/products
+    // Name: api.products.store
+  }
+}
+```
+
+## @GroupDomain Decorator
+
+Restrict all routes in a controller to a specific domain:
+
+```typescript
+import { GroupDomain, Get } from '@adonisjs-community/girouette'
+
+@GroupDomain('api.example.com')
+export default class ApiController {
+  @Get('/status')
+  async status() {
+    // Only accessible via api.example.com/status
+    return { status: 'ok' }
+  }
+}
+```
+
+### Dynamic Subdomains
+
+Capture subdomain values as parameters:
+
+```typescript
+import { GroupDomain, Get } from '@adonisjs-community/girouette'
+import { HttpContext } from '@adonisjs/core/http'
+
+@GroupDomain(':tenant.example.com')
+export default class TenantController {
+  @Get('/dashboard')
+  async dashboard({ subdomains }: HttpContext) {
+    // acme.example.com/dashboard → subdomains.tenant = 'acme'
+    return { tenant: subdomains.tenant }
+  }
+}
+```
+
+## Combining Decorators
+
+Use multiple group decorators together for sophisticated routing:
+
+```typescript
+import {
+  Group,
+  GroupMiddleware,
+  GroupDomain,
+  Get,
+  Post,
+} from '@adonisjs-community/girouette'
+import { middleware } from '#start/kernel'
+
+@Group({ name: 'admin', prefix: '/admin' })
+@GroupMiddleware([middleware.auth()])
+@GroupDomain('admin.example.com')
+export default class AdminController {
+  @Get('/dashboard', 'dashboard')
+  async dashboard() {
+    // URL: admin.example.com/admin/dashboard
+    // Name: admin.dashboard
+    // Protected by auth middleware
+  }
+
+  @Get('/users', 'users')
+  async users() {
+    // URL: admin.example.com/admin/users
+    // Name: admin.users
+    // Protected by auth middleware
+  }
+
+  @Post('/settings', 'settings.update')
+  async updateSettings() {
+    // URL: admin.example.com/admin/settings
+    // Name: admin.settings.update
+    // Protected by auth middleware
+  }
+}
+```
+
+## API Versioning Pattern
+
+A common use case for groups is API versioning:
+
+```typescript
+// V1 API
+@Group({ name: 'v1', prefix: '/api/v1' })
+export default class UsersV1Controller {
+  @Get('/users', 'users.index')
+  async index() {
+    // GET /api/v1/users
+    return { version: 1, users: await User.all() }
+  }
+}
+```
+
+```typescript
+// V2 API with breaking changes
+@Group({ name: 'v2', prefix: '/api/v2' })
+export default class UsersV2Controller {
+  @Get('/users', 'users.index')
+  async index() {
+    // GET /api/v2/users
+    return {
+      version: 2,
+      data: await User.all(),
+      meta: { total: await User.query().count() }
+    }
+  }
+}
+```
+
+## Multi-tenant Applications
+
+Create tenant-isolated routes:
+
+```typescript
+@Group({ prefix: '/tenant' })
+@GroupDomain(':tenant.myapp.com')
+@GroupMiddleware([middleware.tenant()])
+export default class TenantDashboardController {
+  @Get('/dashboard')
+  async dashboard({ subdomains }: HttpContext) {
+    const tenant = await Tenant.findByOrFail('slug', subdomains.tenant)
+    return { tenant: tenant.name, dashboard: await tenant.dashboard() }
+  }
+}
+```
+
+<Callout type="info">
+  Group decorators are applied to the entire controller class.
+  All route decorators within the class inherit the group configuration.
+</Callout>
+
+## Comparison with Traditional AdonisJS
+
+Traditional approach:
+
+```typescript
+// start/routes.ts
+router.group(() => {
+  router.get('/users', [UsersController, 'index']).as('users.index')
+  router.post('/users', [UsersController, 'store']).as('users.store')
+})
+.prefix('/api/v1')
+.as('api')
+.middleware([middleware.auth()])
+```
+
+With Girouette:
+
+```typescript
+// app/controllers/users_controller.ts
+@Group({ name: 'api', prefix: '/api/v1' })
+@GroupMiddleware([middleware.auth()])
+export default class UsersController {
+  @Get('/users', 'users.index')
+  async index() { /* ... */ }
+
+  @Post('/users', 'users.store')
+  async store() { /* ... */ }
+}
+```
+
+<Callout type="info">
+  Both approaches are valid. Girouette keeps route definitions close to
+  the code they invoke, making navigation easier in larger applications.
+</Callout>
+
+## Next Steps
+
+- [Middleware](/docs/middleware) - Apply middleware to individual routes
+- [Resources](/docs/resources) - RESTful resource controllers
+- [Constraints](/docs/constraints) - Validate route parameters
