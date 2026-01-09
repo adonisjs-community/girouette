@@ -25,10 +25,11 @@ import { RouteMetadataStorage } from '../metadata/main.ts'
  * @example
  * // Using a custom RouteMatcher function:
  * import { Where } from '@adonisjs-community/girouette'
+ * import router from '@adonisjs/core/services/router'
  *
  * class PostsController {
  *   @Get('/posts/:slug')
- *   @Where('slug', (value) => /^[a-z0-9-]+$/.test(value))
+ *   @Where('slug', router.matchers.slug())
  *   async show({ params }: HttpContext) {
  *     // This route will only match if the 'slug' parameter consists of lowercase letters, numbers, and hyphens
  *   }

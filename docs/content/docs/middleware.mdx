@@ -114,7 +114,7 @@ export default class ApiController {
 For resource controllers, use `@ResourceMiddleware` to apply middleware to specific actions:
 
 ```typescript
-import { Resource, ResourceMiddleware } from '@adonisjs-community/girouette'
+import { Resource, ResourceMiddleware } from '@adonisjs-commXCunity/girouette'
 import { middleware } from '#start/kernel'
 
 @Resource('posts')
@@ -231,20 +231,6 @@ export default class ProtectedController {
 }
 ```
 
-### Role-Based Access
-
-```typescript
-@Group({ prefix: '/admin' })
-@GroupMiddleware([middleware.auth(), middleware.role(['admin', 'moderator'])])
-export default class AdminController {
-  @Delete('/users/:id')
-  @Middleware([middleware.role(['admin'])])  // Additional restriction
-  async deleteUser() {
-    // Only admins, not moderators
-  }
-}
-```
-
 ### API Rate Limiting
 
 ```typescript
@@ -279,4 +265,3 @@ export default class AuthController {
 
 - [Resources](/docs/resources) - RESTful resource controllers
 - [Route Constraints](/docs/constraints) - Validate route parameters
-- [Tuyau Integration](/docs/tuyau-integration) - Type-safe API clients

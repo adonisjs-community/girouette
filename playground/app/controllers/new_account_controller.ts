@@ -3,7 +3,7 @@ import { signupValidator } from '#validators/user'
 import type { HttpContext } from '@adonisjs/core/http'
 import { Group, Get } from '@adonisjs-community/girouette'
 
-@Group({ name: 'NewAccount' })
+@Group({})
 export default class NewAccountController {
   async create({ inertia }: HttpContext) {
     return inertia.render('auth/signup', {})

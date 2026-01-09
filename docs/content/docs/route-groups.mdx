@@ -1,7 +1,7 @@
 ---
 title: Route Groups
 description: Organize routes with shared prefixes, names, and domain restrictions
-icon: FolderTree
+icon: Group
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -177,10 +177,12 @@ export default class UsersV2Controller {
   @Get('/users', 'users.index')
   async index() {
     // GET /api/v2/users
+
+    const users = await User.all()
     return {
       version: 2,
-      data: await User.all(),
-      meta: { total: await User.query().count() }
+      data: users,
+      meta: { total: users.length },
     }
   }
 }

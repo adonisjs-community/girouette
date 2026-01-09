@@ -2,8 +2,11 @@
 import type { routes } from './index.ts'
 
 export interface ApiDefinition {
-  NewAccount: {
-    store: typeof routes['NewAccount.store']
+  api: {
+    expensiveOperation: typeof routes['api.expensiveOperation']
+  }
+  newAccount: {
+    store: typeof routes['new_account.store']
   }
   session: {
     index: typeof routes['session.index']
@@ -14,6 +17,6 @@ export interface ApiDefinition {
     home: typeof routes['test.home']
   }
   users: {
-    list: typeof routes['users.list']
+    show: typeof routes['users.show']
   }
 }

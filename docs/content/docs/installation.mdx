@@ -7,6 +7,7 @@ icon: Download
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 
 # Installation
 
@@ -24,10 +25,44 @@ Getting Girouette up and running in your AdonisJS v7 application is straightforw
     node ace add @adonisjs-community/girouette
     ```
 
-    This will:
-    - Install the package
-    - Create the configuration file
-    - Register the provider automatically
+    <Accordions>
+      <Accordion title="See steps performed by this command">
+        The `node ace add` command automatically performs the following configuration steps:
+
+        1. **Installs the package** via your package manager (npm, yarn, or pnpm)
+
+        2. **Registers the provider** in `adonisrc.ts`:
+           ```ts
+           providers: [
+             () => import('@adonisjs-community/girouette/girouette_provider'),
+           ]
+           ```
+
+        3. **Adds the preload file** in `adonisrc.ts`:
+           ```ts
+           preloads: [
+             () => import('#start/routes.girouette'),
+           ]
+           ```
+
+        4. **Registers the indexControllers hook** in `adonisrc.ts`:
+           ```ts
+           import { indexControllers } from '@adonisjs-community/girouette'
+
+           export default defineConfig({
+             hooks: {
+               init: [
+                 indexControllers(),
+               ],
+             },
+           })
+           ```
+
+        5. **Creates the configuration file** at `config/girouette.ts`
+
+        6. **Creates the routes file stub** at `start/routes.girouette.ts`
+      </Accordion>
+    </Accordions>
   </Step>
 
   <Step>
@@ -152,7 +187,7 @@ Girouette uses TypeScript decorators. Ensure your `tsconfig.json` has the follow
 After installation, start your development server:
 
 ```bash
-node ace serve --watch
+node ace serve --hmr
 ```
 
 Create a simple controller to verify everything works:

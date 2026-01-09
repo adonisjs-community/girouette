@@ -1,0 +1,150 @@
+---
+title: HMR Support
+description: Enable Hot Module Replacement for your Girouette routes
+icon: Flame
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+Girouette supports Hot Module Replacement (HMR) during development, it means that any changes in your code unrelated to Girouette (like controller logic or services) will automatically invalidate your files without restarting the server.
+
+<Callout type="info">
+  HMR support is automatically configured when you install Girouette using `node ace add @adonisjs-community/girouette`. The `indexControllers()` hook is registered during installation. See the [Installation](/installation) guide for details.
+</Callout>
+
+<Callout type="warn">
+  Any changes to Girouette configuration, route definitions, or the `indexControllers()` hook options will still trigger a full-reload.
+</Callout>
+
+## Usage
+
+<Steps>
+  <Step>
+    ### Start the Development Server
+
+    Run your AdonisJS development server with the `--hmr` flag:
+
+    ```bash
+    node ace serve --hmr
+    ```
+
+    The `--hmr` flag enables Hot Module Replacement for your application.
+  </Step>
+
+  <Step>
+    ### Make Changes to Your Controllers
+
+    Edit any controller's logic and save it:
+
+    ```ts title="app/controllers/users_controller.ts"
+    import { Get } from '@adonisjs-community/girouette'
+
+    export default class UsersController {
+      @Get('/users')
+      async index() {
+        return { message: 'Hello from Users!' } // [!code --]
+        return { message: 'HMR is working!' } // [!code ++]
+      }
+    }
+    ```
+  </Step>
+
+  <Step>
+    ### Verify HMR is Working
+
+    Check your terminal. You should see:
+
+    ```
+    invalidated app/controllers/users_controller.ts
+    ```
+
+    Your changes should be reflected immediately in your application without restarting the server.
+  </Step>
+</Steps>
+
+## Customizing Controller Options
+
+You can customize the controller scanning behavior:
+
+```ts title="adonisrc.ts"
+import { indexControllers } from '@adonisjs-community/girouette'
+
+export default defineConfig({
+  hooks: {
+    init: [
+      indexControllers({
+        source: './app/controllers', // Source directory
+        glob: ['**/*_controller.ts'], // File patterns to match
+        importAlias: '#controllers', // Import alias to use
+      }),
+    ],
+  },
+})
+```
+
+## How It Works
+
+When HMR is enabled:
+
+1. **Initial Scan**: The `indexControllers(){:ts}` hook scans your controllers directory during initialization
+2. **Code Generation**: A `start/routes.girouette.ts` file forwards your controllers and hmr path to Girouette
+3. **File Watcher**: When you modify a controller, AdonisJS detects the change and triggers HMR
+4. **Auto Reload**: If your edits affect routing, a full-reload is triggered; otherwise, only the changed module is invalidated
+5. **Instant Update**: Changes are reflected immediately in your application
+
+## Troubleshooting
+
+### Routes Not Updating
+
+If your routes aren't updating automatically:
+
+1. **Check the hook is registered**:
+   ```ts title="adonisrc.ts"
+   hooks: {
+     init: [
+       indexControllers(), // [!code highlight]
+     ],
+   }
+   ```
+
+2. **Verify the preload is added**:
+   ```ts title="adonisrc.ts"
+   preloads: [
+     () => import('#start/routes'),
+     () => import('#start/kernel'),
+     () => import('#start/routes.girouette'), // [!code highlight]
+   ]
+   ```
+
+3. **Check the hot-hook boundaries in your `package.json`**
+    ```json
+    "hotHook": {
+        "boundaries": [
+          "./app/**/*_controller.ts", // for nested controllers
+          "./app/middleware/*.ts"
+        ]
+      },
+    }
+    ```
+
+4. **Verify HMR is enabled**:
+   ```bash
+   node ace serve --hmr
+   ```
+
+5. **Check file naming**: Controllers must end with `_controller.ts` by default (configurable via the `glob` option in `indexControllers()`)
+
+### Changes Require Full Restart
+
+Some changes still triggers a full-reload:
+
+- Changes to `adonisrc.ts` (hooks, preloads, providers) or config-related files
+- Changes to files booted on startup, like `start/kernel.ts` or even `models/user.ts` (imported by `app_provider.ts`)
+- Changes to middleware definitions in `start/kernel.ts`
+- Changes to the `indexControllers(){:ts}` hook options
+
+## Next Steps
+
+- [Basic Routing](/basic-routing) - Learn how to define routes
+- [Route Groups](/route-groups) - Organize your routes

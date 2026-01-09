@@ -14,6 +14,7 @@ import girouette from '@adonisjs-community/girouette/services/main'
 import app from '@adonisjs/core/services/app'
 
 await girouette.controllers([
+  () => import('#app/controllers/api_controller'),
   () => import('#app/controllers/new_account_controller'),
   () => import('#app/controllers/session_controller'),
   () => import('#app/controllers/test_controller'),
