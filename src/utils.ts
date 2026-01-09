@@ -16,5 +16,5 @@ export function deepEqual<T>(a: T, b: T) {
 }
 
 export function prettifyGroupName(name: string) {
-  return stringHelpers.create(name).removeSuffix('Controller').noCase().toString()
+  return stringHelpers.create(name).removeSuffix('Controller').snakeCase().toString()
 }

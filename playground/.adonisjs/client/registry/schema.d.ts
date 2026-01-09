@@ -5,7 +5,18 @@ import type { ExtractBody, ExtractQuery, ExtractQueryForGet } from '@tuyau/core/
 import type { InferInput } from '@vinejs/vine/types'
 
 export interface Registry {
-  'NewAccount.store': {
+  'api.expensiveOperation': {
+    methods: ["POST"]
+    pattern: '/api/expensive-operation'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: Awaited<ReturnType<import('#app/controllers/api_controller').default['expensiveOperation']>>
+    }
+  }
+  'new_account.store': {
     methods: ["GET"]
     pattern: '/welcome'
     types: {
@@ -60,15 +71,15 @@ export interface Registry {
       response: Awaited<ReturnType<import('#app/controllers/test_controller').default['home']>>
     }
   }
-  'users.list': {
+  'users.show': {
     methods: ["GET"]
-    pattern: '/users'
+    pattern: '/users/:userId'
     types: {
       body: {}
-      paramsTuple: []
-      params: {}
+      paramsTuple: [string]
+      params: { userId: string }
       query: {}
-      response: Awaited<ReturnType<import('#app/features/users/controllers/users_controller').default['list']>>
+      response: Awaited<ReturnType<import('#app/features/users/controllers/users_controller').default['show']>>
     }
   }
 }

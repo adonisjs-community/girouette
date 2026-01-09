@@ -35,8 +35,10 @@ export default class PostsController {
 ### Numeric IDs
 
 ```typescript
+import router from '@adonisjs/core/services/router'
+
 @Get('/users/:id')
-@Where('id', /^\d+$/)
+@Where('id', router.matchers.number())
 async show({ params }: HttpContext) {
   // Matches: /users/1, /users/123
   // Rejects: /users/abc, /users/12a
@@ -46,8 +48,10 @@ async show({ params }: HttpContext) {
 ### Slugs
 
 ```typescript
+import router from '@adonisjs/core/services/router'
+
 @Get('/articles/:slug')
-@Where('slug', /^[a-z0-9-]+$/)
+@Where('slug', router.matchers.slug()))
 async show({ params }: HttpContext) {
   // Matches: /articles/my-article, /articles/post-123
   // Rejects: /articles/My_Article, /articles/post@123
@@ -57,8 +61,10 @@ async show({ params }: HttpContext) {
 ### UUIDs
 
 ```typescript
+import router from '@adonisjs/core/services/router'
+
 @Get('/resources/:uuid')
-@Where('uuid', /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+@Where('uuid', router.matchers.uuid())
 async show({ params }: HttpContext) {
   // Matches: /resources/550e8400-e29b-41d4-a716-446655440000
 }
@@ -92,7 +98,7 @@ Apply constraints to multiple parameters:
 ```typescript
 @Get('/users/:userId/posts/:postId')
 @Where('userId', /^\d+$/)
-@Where('postId', /^\d+$/)
+@Where('postId', router.matchers.number())
 async show({ params }: HttpContext) {
   // Both parameters must be numeric
 }
@@ -107,35 +113,6 @@ Use string values for exact matches:
 @Where('version', 'v1|v2|v3')
 async show({ params }: HttpContext) {
   // Only matches: /docs/v1, /docs/v2, /docs/v3
-}
-```
-
-## Function Matchers
-
-Use custom functions for complex validation:
-
-```typescript
-@Get('/files/:filename')
-@Where('filename', (value: string) => {
-  const allowedExtensions = ['.pdf', '.doc', '.txt']
-  return allowedExtensions.some(ext => value.endsWith(ext))
-})
-async download({ params }: HttpContext) {
-  // Custom logic for validation
-}
-```
-
-### Async Function Matchers
-
-```typescript
-@Get('/users/:username')
-@Where('username', async (value: string) => {
-  // Could check against a blocklist
-  const blocked = ['admin', 'root', 'system']
-  return !blocked.includes(value.toLowerCase())
-})
-async profile({ params }: HttpContext) {
-  // Rejects reserved usernames
 }
 ```
 
@@ -158,9 +135,10 @@ export default class ArticlesController {
 
 ## Common Constraint Patterns
 
-Here's a reference of commonly used patterns:
+Here's a reference of commonly used regex patterns:
 
 ```typescript
+
 // Numeric ID
 @Where('id', /^\d+$/)
 
@@ -219,15 +197,5 @@ async showBySlug({ params }: HttpContext) {
   parameter doesn't meet the criteria. They don't throw validation errors.
 </Callout>
 
-## Performance Considerations
-
-- Regex constraints are evaluated before the controller method is called
-- Simple patterns are faster than complex ones
-- Function matchers add overhead—use regex when possible
-- Async matchers should be used sparingly
-
-## Next Steps
-
-- [Tuyau Integration](/docs/tuyau-integration) - Type-safe API clients
 - [Basic Routing](/docs/basic-routing) - HTTP method decorators
 - [Resources](/docs/resources) - RESTful resource routes

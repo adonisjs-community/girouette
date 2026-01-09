@@ -163,28 +163,6 @@ const url = router.makeUrl('users.show', { id: 1 })
   RESTful conventions (e.g., `posts.index`, `posts.show`, `posts.store`).
 </Callout>
 
-## Response Handling
-
-Girouette routes work seamlessly with AdonisJS response handling:
-
-### Return Values
-
-Simply return data from your controller methods:
-
-```typescript
-@Get('/api/users')
-async index() {
-  // Automatically serialized as JSON
-  return User.all()
-}
-
-@Get('/api/status')
-async status() {
-  // Objects are serialized as JSON
-  return { status: 'healthy', uptime: process.uptime() }
-}
-```
-
 ### Using Response Object
 
 For more control, use the `response` object:
@@ -242,11 +220,11 @@ Follow consistent naming patterns:
 
 ```typescript
 // RESTful conventions
-@Get('/resources', 'resources.index')       // List
-@Get('/resources/:id', 'resources.show')    // Show single
-@Post('/resources', 'resources.store')      // Create
-@Put('/resources/:id', 'resources.update')  // Full update
-@Patch('/resources/:id', 'resources.patch') // Partial update
+@Get('/resources', 'resources.index')          // List
+@Get('/resources/:id', 'resources.show')       // Show single
+@Post('/resources', 'resources.store')         // Create
+@Put('/resources/:id', 'resources.update')     // Full update
+@Patch('/resources/:id', 'resources.update')   // Partial update
 @Delete('/resources/:id', 'resources.destroy') // Delete
 ```
 

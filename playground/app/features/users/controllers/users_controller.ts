@@ -1,8 +1,10 @@
-import { Get } from '@adonisjs-community/girouette'
+import { Get, Where } from '@adonisjs-community/girouette'
+import router from '@adonisjs/core/services/router'
 
 export default class UsersController {
-  @Get('/users')
-  list() {
+  @Get('/users/:userId')
+  @Where('userId', router.matchers.slug())
+  async show() {
     return 'testest hello'
   }
 }

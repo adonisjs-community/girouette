@@ -10,8 +10,10 @@
     "---Advanced---",
     "resources",
     "constraints",
-    "---Integrations---",
-    "tuyau-integration"
+    "listeners",
+    "---Development---",
+    "hmr-support",
+    "custom-structure"
   ],
   "icon": "Book"
 }

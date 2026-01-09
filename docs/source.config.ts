@@ -1,7 +1,12 @@
-import { defineConfig, defineDocs } from 'fumadocs-mdx/config'
+import {
+  defineConfig,
+  defineDocs,
+  frontmatterSchema,
+} from 'fumadocs-mdx/config'
 import { rehypeCode, rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins'
 import { transformerTwoslash } from 'fumadocs-twoslash'
 import lastModified from 'fumadocs-mdx/plugins/last-modified'
+import { z } from 'zod'
 
 export const docs = defineDocs({
   dir: 'content/docs',
@@ -11,6 +16,9 @@ export const docs = defineDocs({
       includeProcessedMarkdown: true,
       extractLinkReferences: true,
     },
+    schema: frontmatterSchema.extend({
+      comingSoon: z.boolean().default(false),
+    }),
   },
 })
 
@@ -22,8 +30,9 @@ export default defineConfig({
         rehypeCode,
         {
           ...rehypeCodeDefaultOptions,
+          inline: 'tailing-curly-colon',
           transformers: [
-            ...rehypeCodeDefaultOptions.transformers ?? [],
+            ...(rehypeCodeDefaultOptions.transformers ?? []),
             transformerTwoslash(),
           ],
         },

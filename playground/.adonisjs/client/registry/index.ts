@@ -6,11 +6,17 @@ import type { ApiDefinition } from './tree.d.ts'
 const placeholder: any = {}
 
 const routes = {
-  'NewAccount.store': {
+  'api.expensiveOperation': {
+    methods: ["POST"],
+    pattern: '/api/expensive-operation',
+    tokens: [{"old":"/api/expensive-operation","type":0,"val":"api","end":""},{"old":"/api/expensive-operation","type":0,"val":"expensive-operation","end":""}],
+    types: placeholder as Registry['api.expensiveOperation']['types'],
+  },
+  'new_account.store': {
     methods: ["GET"],
     pattern: '/welcome',
     tokens: [{"old":"/welcome","type":0,"val":"welcome","end":""}],
-    types: placeholder as Registry['NewAccount.store']['types'],
+    types: placeholder as Registry['new_account.store']['types'],
   },
   'session.index': {
     methods: ["GET","HEAD"],
@@ -36,11 +42,11 @@ const routes = {
     tokens: [{"old":"/","type":0,"val":"/","end":""}],
     types: placeholder as Registry['test.home']['types'],
   },
-  'users.list': {
+  'users.show': {
     methods: ["GET"],
-    pattern: '/users',
-    tokens: [{"old":"/users","type":0,"val":"users","end":""}],
-    types: placeholder as Registry['users.list']['types'],
+    pattern: '/users/:userId',
+    tokens: [{"old":"/users/:userId","type":0,"val":"users","end":""},{"old":"/users/:userId","type":1,"val":"userId","end":""}],
+    types: placeholder as Registry['users.show']['types'],
   },
 } as const satisfies Record<string, AdonisEndpoint>
 
