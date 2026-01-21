@@ -24,9 +24,13 @@ export class Girouette {
    * Starts listening to hot-hook to reload server
    * when files are changed.
    *
+   * Only registers the listener if running with an IPC channel available.
+   *
    * @param path - absolute path to the directory to watch
    */
   hmr(path: string) {
+    if (!process.send) return
+
     process.on('message', (message) => {
       if (!isHotHookMessage(message)) return
 
