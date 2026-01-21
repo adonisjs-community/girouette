@@ -68,7 +68,7 @@ export class RouterLoader {
       propertyKey,
     ] as any)
 
-    route.as(metadata.name ?? propertyKey)
+    route.as(metadata.name)
 
     if (metadata.middlewares) {
       for (const middleware of metadata.middlewares) {

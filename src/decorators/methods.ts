@@ -1,4 +1,5 @@
 import { RouteMetadataStorage } from '../metadata/main.ts'
+import { prettifyRouteName } from '../utils.ts'
 
 /**
  * Creates a method decorator for HTTP routes in AdonisJS v6
@@ -10,7 +11,7 @@ const MethodDecorator = (method: string) => (pattern: string, name?: string) => 
     RouteMetadataStorage.mergeMetadata(
       target,
       {
-        name: name ?? propertyKey,
+        name: name ?? prettifyRouteName(propertyKey),
         methods: [method],
         pattern,
       },

@@ -32,3 +32,7 @@ export function deepEqual<T>(a: T, b: T) {
 export function prettifyGroupName(name: string) {
   return stringHelpers.create(name).removeSuffix('Controller').snakeCase().toString()
 }
+
+export function prettifyRouteName(name: string) {
+  return stringHelpers.create(name).snakeCase().toString()
+}

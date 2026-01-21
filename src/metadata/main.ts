@@ -13,7 +13,7 @@ export type WhereConstraint = {
 }
 
 export type RouteMetadata = {
-  name?: string
+  name: string
   pattern?: string
   methods?: string[]
   domain?: string
