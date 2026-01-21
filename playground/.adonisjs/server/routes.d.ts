@@ -4,7 +4,7 @@ type ParamValue = string | number | bigint | boolean
 
 export type ScannedRoutes = {
   ALL: {
-    'api.expensiveOperation': { paramsTuple?: []; params?: {} }
+    'api.expensive_operation': { paramsTuple?: []; params?: {} }
     'new_account.store': { paramsTuple?: []; params?: {} }
     'session.index': { paramsTuple?: []; params?: {} }
     'session.create': { paramsTuple?: []; params?: {} }
@@ -13,7 +13,7 @@ export type ScannedRoutes = {
     'users.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
   }
   POST: {
-    'api.expensiveOperation': { paramsTuple?: []; params?: {} }
+    'api.expensive_operation': { paramsTuple?: []; params?: {} }
   }
   GET: {
     'new_account.store': { paramsTuple?: []; params?: {} }

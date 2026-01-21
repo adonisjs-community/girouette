@@ -6,11 +6,11 @@ import type { ApiDefinition } from './tree.d.ts'
 const placeholder: any = {}
 
 const routes = {
-  'api.expensiveOperation': {
+  'api.expensive_operation': {
     methods: ["POST"],
     pattern: '/api/expensive-operation',
     tokens: [{"old":"/api/expensive-operation","type":0,"val":"api","end":""},{"old":"/api/expensive-operation","type":0,"val":"expensive-operation","end":""}],
-    types: placeholder as Registry['api.expensiveOperation']['types'],
+    types: placeholder as Registry['api.expensive_operation']['types'],
   },
   'new_account.store': {
     methods: ["GET"],
