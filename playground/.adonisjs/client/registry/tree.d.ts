@@ -3,7 +3,7 @@ import type { routes } from './index.ts'
 
 export interface ApiDefinition {
   api: {
-    expensiveOperation: typeof routes['api.expensiveOperation']
+    expensiveOperation: typeof routes['api.expensive_operation']
   }
   newAccount: {
     store: typeof routes['new_account.store']

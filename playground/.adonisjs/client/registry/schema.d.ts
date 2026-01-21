@@ -5,7 +5,7 @@ import type { ExtractBody, ExtractQuery, ExtractQueryForGet } from '@tuyau/core/
 import type { InferInput } from '@vinejs/vine/types'
 
 export interface Registry {
-  'api.expensiveOperation': {
+  'api.expensive_operation': {
     methods: ["POST"]
     pattern: '/api/expensive-operation'
     types: {
