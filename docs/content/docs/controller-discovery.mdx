@@ -1,0 +1,286 @@
+---
+title: Controller Discovery
+description: Configure how Girouette discovers your controllers
+icon: FolderTree
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+# Controller Discovery
+
+By default, Girouette expects controllers in `app/controllers`. However, you can configure it to work with any project structure: feature-based, hexagonal architecture, domain-driven design, or any custom layout.
+
+## Configuration Overview
+
+To use a custom file structure, you need to configure three things:
+
+1. **`indexControllers()` hook** in `adonisrc.ts` - tells Girouette where to find controllers
+2. **`imports`** in `package.json` - defines the TypeScript/Node.js path aliases
+3. **`hotHook.boundaries`** in `package.json` - enables HMR for your controller paths
+
+## The indexControllers Hook
+
+The `indexControllers()` hook accepts three options:
+
+```ts title="adonisrc.ts"
+import { indexControllers } from '@adonisjs-community/girouette'
+
+export default defineConfig({
+  hooks: {
+    init: [
+      indexControllers({
+        source: './app',              // Base directory to scan
+        glob: ['**/*_controller.ts'], // File patterns to match
+        importAlias: '#app',          // Import alias prefix
+      }),
+    ],
+  },
+})
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `source` | `'app/controllers'` | Base directory containing your controllers |
+| `glob` | `['**/*_controller.ts']` | Glob patterns to match controller files |
+| `importAlias` | `'#controllers'` | The import alias that maps to your source directory |
+
+<Callout type="info">
+  The `importAlias` must match an entry in your `package.json` imports field. This is how Node.js resolves the generated imports in `start/routes.girouette.ts`.
+</Callout>
+
+## Feature-Based Architecture
+
+A feature-based structure groups all related files (controllers, models, services) by feature rather than by type.
+
+<Steps>
+  <Step>
+    ### Project Structure
+
+    ```
+    app/
+    ├── features/
+    │   ├── users/
+    │   │   ├── users_controller.ts
+    │   │   ├── user.ts
+    │   │   └── users_service.ts
+    │   ├── posts/
+    │   │   ├── posts_controller.ts
+    │   │   ├── post.ts
+    │   │   └── posts_service.ts
+    │   └── comments/
+    │       ├── comments_controller.ts
+    │       └── comment.ts
+    └── middleware/
+        └── auth_middleware.ts
+    ```
+  </Step>
+
+  <Step>
+    ### Configure adonisrc.ts
+
+    ```ts title="adonisrc.ts"
+    import { indexControllers } from '@adonisjs-community/girouette'
+
+    export default defineConfig({
+      hooks: {
+        init: [
+          indexControllers({
+            source: './app/features',           // [!code highlight]
+            glob: ['**/*_controller.ts'],       // [!code highlight]
+            importAlias: '#features',           // [!code highlight]
+          }),
+        ],
+      },
+    })
+    ```
+  </Step>
+
+  <Step>
+    ### Configure package.json
+
+    Add the import alias and HMR boundaries:
+
+    ```json title="package.json"
+    {
+      "imports": {
+        "#features/*": "./app/features/*.js"
+      },
+      "hotHook": {
+        "boundaries": [
+          "./app/features/**/*_controller.ts",
+          "./app/middleware/*.ts"
+        ]
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Hexagonal Architecture
+
+Hexagonal (ports & adapters) architecture separates your domain from infrastructure. Controllers typically live in the `infrastructure` or `adapters` layer.
+
+<Steps>
+  <Step>
+    ### Project Structure
+
+    ```
+    app/
+    ├── domain/
+    │   ├── users/
+    │   │   ├── user.ts
+    │   │   └── user_repository.ts
+    │   └── orders/
+    │       ├── order.ts
+    │       └── order_repository.ts
+    ├── application/
+    │   ├── users/
+    │   │   └── create_user_use_case.ts
+    │   └── orders/
+    │       └── place_order_use_case.ts
+    └── infrastructure/
+        ├── http/
+        │   ├── users_controller.ts
+        │   └── orders_controller.ts
+        └── persistence/
+            ├── lucid_user_repository.ts
+            └── lucid_order_repository.ts
+    ```
+  </Step>
+
+  <Step>
+    ### Configure adonisrc.ts
+
+    ```ts title="adonisrc.ts"
+    import { indexControllers } from '@adonisjs-community/girouette'
+
+    export default defineConfig({
+      hooks: {
+        init: [
+          indexControllers({
+            source: './app/infrastructure/http', // [!code highlight]
+            glob: ['**/*_controller.ts'],        // [!code highlight]
+            importAlias: '#infrastructure/http', // [!code highlight]
+          }),
+        ],
+      },
+    })
+    ```
+  </Step>
+
+  <Step>
+    ### Configure package.json
+
+    ```json title="package.json"
+    {
+      "imports": {
+        "#infrastructure/*": "./app/infrastructure/*.js",
+        "#domain/*": "./app/domain/*.js",
+        "#application/*": "./app/application/*.js"
+      },
+      "hotHook": {
+        "boundaries": [
+          "./app/infrastructure/http/**/*_controller.ts"
+        ]
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Scanning the Entire App Directory
+
+If your controllers are scattered across multiple directories (mixed architecture), you can scan the entire `app` folder:
+
+<Tabs items={['adonisrc.ts', 'package.json']}>
+  <Tab value="adonisrc.ts">
+    ```ts title="adonisrc.ts"
+    import { indexControllers } from '@adonisjs-community/girouette'
+
+    export default defineConfig({
+      hooks: {
+        init: [
+          indexControllers({
+            source: './app',               // Scan entire app directory
+            glob: ['**/*_controller.ts'],  // Match all controllers
+            importAlias: '#app',           // Use #app alias
+          }),
+        ],
+      },
+    })
+    ```
+  </Tab>
+
+  <Tab value="package.json">
+    ```json title="package.json"
+    {
+      "imports": {
+        "#app/*": "./app/*.js"
+      },
+      "hotHook": {
+        "boundaries": [
+          "./app/**/*_controller.ts",
+          "./app/middleware/*.ts"
+        ]
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Callout type="warn">
+  When scanning a broad directory like `./app`, ensure your glob pattern is specific enough to avoid matching unintended files.
+</Callout>
+
+## Understanding HMR Boundaries
+
+The `hotHook.boundaries` configuration tells AdonisJS which files can be hot-reloaded without a full server restart. For Girouette to work with HMR:
+
+```json title="package.json"
+{
+  "hotHook": {
+    "boundaries": [
+      "./app/**/*_controller.ts"
+    ]
+  }
+}
+```
+
+**Key points:**
+- Boundaries must include all controller file paths
+- The pattern should match your `source` + `glob` configuration
+- Include middleware if you want HMR for middleware changes too
+
+## Troubleshooting
+
+### Import Errors
+
+If you see errors like `Cannot find module '#features/users/users_controller'`:
+
+1. Verify your `package.json` imports match the `importAlias` in `indexControllers()`
+2. Check that the path pattern uses `.js` extension (Node.js ESM resolution)
+3. Start the dev server to regenerate the routes file
+
+### HMR Not Working
+
+If changes require a full restart:
+
+1. Check that `hotHook.boundaries` includes your controller paths
+2. Ensure the glob pattern matches your actual file locations
+3. Verify you're running with `node ace serve --hmr`
+
+### Controllers Not Found
+
+If Girouette doesn't detect your controllers:
+
+1. Verify controllers end with `_controller.ts` (or update the `glob` pattern)
+2. Check that `source` points to the correct directory
+3. Ensure controllers have a default export
+
+## Next Steps
+
+- [HMR Support](/hmr-support) - Learn more about hot module replacement
+- [Installation](/installation) - Review the default configuration
+- [Basic Routing](/basic-routing) - Start defining routes

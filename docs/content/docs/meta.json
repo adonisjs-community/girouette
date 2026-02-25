@@ -13,7 +13,7 @@
     "listeners",
     "---Development---",
     "hmr-support",
-    "custom-structure"
+    "controller-discovery"
   ],
   "icon": "Book"
 }
