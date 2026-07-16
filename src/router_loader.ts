@@ -114,8 +114,20 @@ export class RouterLoader {
     routes: Record<string, RouteMetadata>,
     resource?: ResourceMetadata
   ) {
+    const hasGroup =
+      group.name !== undefined ||
+      group.prefix !== undefined ||
+      group.domain !== undefined ||
+      group.middlewares !== undefined
+
     if (resource) {
-      this.registerResource(controllerImport, resource)
+      if (hasGroup) {
+        this.registerGroup(controllerName, group, () => {
+          this.registerResource(controllerImport, resource)
+        })
+      } else {
+        this.registerResource(controllerImport, resource)
+      }
       return
     }
 
