@@ -104,10 +104,25 @@ test.group('GirouetteProvider - Resource Routes', () => {
 
     assert.isTrue(routes.length > 0)
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/posts')))
+    assert.isTrue(routes.every((r) => r.name.startsWith('posts.')))
+    assert.isFalse(routes.some((r) => r.name.startsWith('posts.posts.')))
     assert.isTrue(routes.every((r) => r.methods.every((m) => HTTP_METHODS.includes(m))))
 
     const controllerMethods = routes.map((r) => extractMethodFromHandler(r.handler))
     assert.isTrue(controllerMethods.every((m) => RESOURCE_METHODS.includes(m.toLowerCase())))
+  })
+
+  test('should combine "resource" routes with a "group"', async ({ assert }) => {
+    const app = await createTestApp()
+
+    const routes = await setupRoutes(app, [
+      () => import('./controllers/resource_group/posts_controller.js'),
+    ])
+
+    assert.isTrue(routes.length > 0)
+    assert.isTrue(routes.every((r) => r.pattern.startsWith('/api/v1/posts')))
+    assert.isTrue(routes.every((r) => r.name.startsWith('api.v1.posts.')))
+    assert.isFalse(routes.some((r) => r.name.startsWith('posts.posts.')))
   })
 
   test('should rename "resource" params', async ({ assert }) => {
