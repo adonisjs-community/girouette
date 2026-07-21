@@ -25,10 +25,19 @@ export class RouterLoader {
     this.#logger = logger
   }
 
-  registerGroup(name: string, metadata: GroupMetadata, callback: () => void) {
+  registerGroup(
+    name: string,
+    metadata: GroupMetadata,
+    callback: () => void,
+    options?: { inferName?: boolean }
+  ) {
     const group = this.#router.group(() => callback())
 
-    group.as(metadata.name ?? prettifyGroupName(name))
+    if (metadata.name !== undefined) {
+      group.as(metadata.name)
+    } else if (options?.inferName !== false) {
+      group.as(prettifyGroupName(name))
+    }
 
     if (metadata.prefix) {
       group.prefix(metadata.prefix)
@@ -122,9 +131,14 @@ export class RouterLoader {
 
     if (resource) {
       if (hasGroup) {
-        this.registerGroup(controllerName, group, () => {
-          this.registerResource(controllerImport, resource)
-        })
+        this.registerGroup(
+          controllerName,
+          group,
+          () => {
+            this.registerResource(controllerImport, resource)
+          },
+          { inferName: false }
+        )
       } else {
         this.registerResource(controllerImport, resource)
       }
