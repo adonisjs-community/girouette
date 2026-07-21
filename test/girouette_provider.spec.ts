@@ -122,6 +122,19 @@ test.group('GirouetteProvider - Resource Routes', () => {
     assert.isTrue(routes.length > 0)
     assert.isTrue(routes.every((r) => r.pattern.startsWith('/api/v1/posts')))
     assert.isTrue(routes.every((r) => r.name.startsWith('api.v1.posts.')))
+    assert.isFalse(routes.some((r) => r.name.startsWith('api.v1.posts.posts.')))
+  })
+
+  test('should combine "resource" routes with a prefix-only "group"', async ({ assert }) => {
+    const app = await createTestApp()
+
+    const routes = await setupRoutes(app, [
+      () => import('./controllers/resource_group_prefix/posts_controller.js'),
+    ])
+
+    assert.isTrue(routes.length > 0)
+    assert.isTrue(routes.every((r) => r.pattern.startsWith('/api/posts')))
+    assert.isTrue(routes.every((r) => r.name.startsWith('posts.')))
     assert.isFalse(routes.some((r) => r.name.startsWith('posts.posts.')))
   })
 
