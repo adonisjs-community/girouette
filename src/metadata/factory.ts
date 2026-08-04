@@ -1,7 +1,7 @@
 import deepmerge from 'deepmerge'
 
-export function createMetadataStorage<T extends Object>(key: Symbol | string, defaultMetadata?: T) {
-  function defineMetadata(object: Object, metadata: T, propertyKey?: string | symbol) {
+export function createMetadataStorage<T extends object>(key: symbol | string, defaultMetadata?: T) {
+  function defineMetadata(object: object, metadata: T, propertyKey?: string | symbol) {
     if (propertyKey) {
       Reflect.defineMetadata(key, metadata, object, propertyKey)
     } else {
@@ -10,7 +10,7 @@ export function createMetadataStorage<T extends Object>(key: Symbol | string, de
   }
 
   function getMetadata(
-    object: Object,
+    object: object,
     propertyKey?: string | symbol,
     withParent = false
   ): T | undefined {
@@ -28,7 +28,7 @@ export function createMetadataStorage<T extends Object>(key: Symbol | string, de
     }
   }
 
-  function mergeMetadata(object: Object, metadata: Partial<T>, propertyKey?: string | symbol): T {
+  function mergeMetadata(object: object, metadata: Partial<T>, propertyKey?: string | symbol): T {
     const existing = getMetadata(object, propertyKey)
     const merged = (existing ? deepmerge(existing, metadata) : metadata) as T
     defineMetadata(object, merged, propertyKey)
