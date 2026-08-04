@@ -1,7 +1,7 @@
 {
   "name": "@adonisjs-community/girouette",
   "description": "An AdonisJS package allowing decorators-based routing.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "engines": {
     "node": ">=20.6.0"
   },
